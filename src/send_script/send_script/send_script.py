@@ -51,32 +51,47 @@ def main(args=None):
     # Initial camera position for taking image (Please do not change the values)
     # For right arm: targetP1 = "230.00, 230, 730, -180.00, 0.0, 135.00"
     # For left  arm:rclpy targetP1 = "350.00, 350, 730, -180.00, 0.0, 135.00"
-    targetP1 = "230.00, 230, 730, -180.00, 0.0, 135.00"
-    targetP2 = "300.00, 100, 500, -180.00, 0.0, 135.00"
-    script1 = f"Line(\"CPP\",{targetP1},100,200,0,false)"
-    script2 = f"Line(\"CPP\",{targetP2},100,200,0,false)"
+    #targetP1 = "230.00, 230, 730, -180.00, 0.0, 135.00"
+    #targetP2 = "300.00, 100, 500, -180.00, 0.0, 135.00"
+    #script1 = f"Line(\"CPP\",{targetP1},100,200,0,false)"
+    #script2 = f"Line(\"CPP\",{targetP2},100,200,0,false)"
     # script1 = "PTP(\"CPP\","+targetP1+",100,200,0,false)"
     # script2 = "PTP(\"CPP\","+targetP2+",100,200,0,false)"
-    send_script(script1)
-    send_script(script2)
+    #send_script(script1)
+    #send_script(script2)
 
 # What does Vision_DoJob do? Try to use it...
 # -------------------------------------------------
-    send_script("Vision_DoJob(job1)")
+    #send_script("Vision_DoJob(job1)")
     #cv2.waitKey(1)
     #send_script("Vision_DoJob(job1)")
     #cv2.waitKey(1)
 #--------------------------------------------------
 
-    sleep(15)
-    set_io(1.0) # 1.0: close gripper, 0.0: open gripper
-    sleep(1)
-    set_io(0.0)
-    rclpy.shutdown()
+    #sleep(15)
+    #set_io(1.0) # 1.0: close gripper, 0.0: open gripper
+    #sleep(1)
+    #set_io(0.0)
+    #rclpy.shutdown()
+
+    print("Hello over there")
+
+    try:
+        while(True):
+            target = input("Input target: ")
+            if(target[0] == 'g'):
+                target = target[1:]
+                print("Gripper: " + target)
+                set_io(float(target))
+                sleep(1)
+            else:
+                print("Target: " + target)
+                script = f"Line(\"CPP\",{target},100,200,0,false)"
+                send_script(script)
+                sleep(1)
+    except Exception as e:
+        print(e)
+        rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
-    
-
-
-    
