@@ -14,11 +14,11 @@ from sensor_msgs.msg import Image
 class ImageSub(Node):
     def __init__(self, nodeName):
         super().__init__(nodeName)
-        self.subscription = self.create_subscription(Image, 
-        'techman_image', self.image_callback, 10)
-        self.subscription
+        self.subscription = self.create_subscription(Image, 'techman_image', self.image_callback, 10)
+        print("Image node init")
     
     def image_callback(self, data):
+        print("Got image callback")
         self.get_logger().info('Received image')
 
         # TODO (write your code here)

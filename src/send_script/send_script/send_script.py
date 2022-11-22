@@ -84,6 +84,10 @@ def main(args=None):
                 print("Gripper: " + target)
                 set_io(float(target))
                 sleep(1)
+            elif(target[0] == 'v'):
+                send_script("Vision_DoJob(job1)")
+                print("Vision")
+                sleep(1)
             else:
                 print("Target: " + target)
                 script = f"Line(\"CPP\",{target},100,200,0,false)"
