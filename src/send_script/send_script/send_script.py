@@ -9,6 +9,10 @@ from tm_msgs.srv import *
 import cv2
 from time import sleep
 
+from .test_import import import_testing
+# import related stuff
+# https://answers.ros.org/question/367793/including-a-python-module-in-a-ros2-package/
+
 # arm client
 def send_script(script):
     arm_node = rclpy.create_node('arm')
@@ -74,7 +78,7 @@ def main(args=None):
     #set_io(0.0)
     #rclpy.shutdown()
 
-    print("Hello over there")
+    import_testing()
 
     try:
         while(True):
