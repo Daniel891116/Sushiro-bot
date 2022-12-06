@@ -1,13 +1,15 @@
-def isSashimiOK(img):
+import numpy as np
+def isSashimiOK(img: np.ndarray) -> bool:
+
     return False
 
-def isRiceballOK(img):
+def isRiceballOK(img) -> bool:
     return False
 
-def isMakkiRiceEnough(img):
+def isMakkiRiceEnough(img) -> bool:
     return False
 
-def isMakkiTuffingOK(img):
+def isMakkiTuffingOK(img) -> bool:
     return False
 
 # should use image class
