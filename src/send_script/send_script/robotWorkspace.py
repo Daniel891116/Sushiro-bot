@@ -1,18 +1,11 @@
 # pose
-try:
-	from waiting import wait, TimeoutExpired
-except ImportError:
-	import os
-	os.system("sudo pip install waiting")
-finally:
-	from waiting import wait, TimeoutExpired
 
 try:
 	try:
 		from dataclasses import dataclass
 	except ImportError:
 		import os
-		os.system("sudo pip install dataclasses")
+		os.system("sudo pip3 install dataclasses")
 	finally:
 		from dataclasses import dataclass
 

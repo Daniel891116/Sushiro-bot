@@ -11,14 +11,16 @@ from sensor_msgs.msg import Image
 import cv2
 from cv_bridge import CvBridge
 
+from threading import Thread, Event
+
 from .robotWorkspace import * # ...Pose
-# from .MCU import MCU
+from .MCU import MCU
 
 class myRobot(Node):
 	"""class myRobot, deal with the comms of the robot"""
 	def __init__(self, nodeName):
-		super(myRobot, self).__init__(nodeName)
-		self.subscription = self.create_subscription(Image, 'techman_image', self.image_callback, 10)
+		super().__init__(nodeName)
+		self.subscription = self.create_subscription(Image, 'techman_image', self.imageCallback, 10)
 
 		self.arm_node = rclpy.create_node('arm')
 		self.arm_cli = self.arm_node.create_client(SendScript, 'send_script')
@@ -32,28 +34,29 @@ class myRobot(Node):
 		self.img = None
 
 		# start sushi service
-		self.startCommandService()
+		self.callbackEvent = Event()
+		inputThread = Thread(target = self.startCommandService)
+		inputThread.start()
 
 	def __del__(self):
 		self.arm_node.destroy_node()
 		self.gripper_node.destroy_node()
 
 	# image
-	def image_callback(self, data):
+	def imageCallback(self, data):
 		self.img = self.bridge.imgmsg_to_cv2(img_msg = data)
 		if self.img_filename:
 			cv2.imwrite(self.img_filename, self.img)
 		self.img_filename = None
+		self.callbackEvent.set()
 
-	def image_capture(self, filename = None):
+	def imageCapture(self, filename = None):
 		self.img = None
 		self.img_filename = filename
 		self.send_script("Vision_DoJob(job1)")
 		# wait for callback
-		try:
-			wait(lambda: self.img is not None, timeout_seconds = 15, waiting_for = "image capture callback")
-		except TimeoutExpired:
-			self.arm_node.get_logger().info("[Error] Image capture timeout.")
+		self.callbackEvent.wait()
+		self.callbackEvent.clear()
 		return self.img
 
 	# gripper
@@ -119,7 +122,7 @@ class myRobot(Node):
 		self.currentPose.z = z
 		self.moveToPose(self.currentPose, speed)
 
-	def moveToRX(self, x, speed = 100):
+	def moveToRX(self, rx, speed = 100):
 		self.currentPose.rx = rx
 		self.moveToPose(self.currentPose, speed)
 
@@ -143,7 +146,7 @@ class myRobot(Node):
 		self.currentPose.z += addz
 		self.moveToPose(self.currentPose, speed)
 
-	def moveAddRX(self, addx, speed = 100):
+	def moveAddRX(self, addrx, speed = 100):
 		self.currentPose.rx += addrx
 		self.moveToPose(self.currentPose, speed)
 
@@ -162,11 +165,37 @@ class myRobot(Node):
 			command = input("Command: ")
 			if command[0] == 'v':
 				print("Vision")
-				self.image_capture(filename = f"image_{count}.jpg")
+				self.imageCapture(filename = f"visionTest_{count}.jpg")
 				count += 1
 			elif command[0] == 'x':
-				x = int(command[2:-1])
+				x = float(command[2:])
 				print(f"x: {x}")
 				self.moveToX(x)
+			elif command[0] == 'y':
+				y = float(command[2:])
+				print(f"y: {y}")
+				self.moveToY(y)
+			elif command[0] == 'z':
+				z = float(command[2:])
+				print(f"z: {z}")
+				self.moveToZ(z)
+			elif command[0] == 'r':
+				if command[1] == 'x':
+					rx = float(command[3:])
+					print(f"rx: {rx}")
+					self.moveToRX(rx)
+				elif command[1] == 'y':
+					ry = float(command[3:])
+					print(f"ry: {ry}")
+					self.moveToRY(ry)
+				elif command[1] == 'z':
+					rz = float(command[3:])
+					print(f"rz: {rz}")
+					self.moveToRZ(rz)
+			elif command[0] == 'q':
+				# quit
+				break
+			else:
+				continue
 
 	# sushi service

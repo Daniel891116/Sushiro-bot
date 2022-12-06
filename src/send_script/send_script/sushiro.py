@@ -26,14 +26,14 @@ from .robotWorkspace import Pose
 from .myRobot import myRobot
 
 def main(args=None):
-    rclpy.init(args=args)
-    node = myRobot('sushiro')
-    try:
-        rclpy.spin(node)
-    except Exception as e:
-        node.destroy_node()
-        rclpy.shutdown()
-        raise e
+	rclpy.init(args=args)
+	node = myRobot('sushiro')
+	try:
+		rclpy.spin(node)
+	except Exception as e:
+		node.destroy_node()
+		rclpy.shutdown()
+		raise e
 
 if __name__ == '__main__':
-    main()
+	main()

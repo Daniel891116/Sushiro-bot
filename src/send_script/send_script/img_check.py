@@ -9,3 +9,5 @@ def isMakkiRiceEnough(img):
 
 def isMakkiTuffingOK(img):
     return False
+
+# should use image class

@@ -20,8 +20,6 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'send_script=send_script.send_script:main',
-		    'img_sub=send_script.image_sub:main',
             'sushiro=send_script.sushiro:main',
         ],
     },
