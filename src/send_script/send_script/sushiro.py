@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# THE MAIN PACKAGE
+
 import rclpy
 from rclpy.node import Node
 
@@ -19,25 +21,19 @@ from skimage import measure as skiMeasure
 from skimage import color
 import matplotlib.pyplot as plt
 
-from .robotComm import send_script, set_io, moveTo, gripper, takePic
-
-class ImageSub(Node):
-    def __init__(self, nodeName):
-        super().__init__(nodeName)
-        self.subscription = self.create_subscription(Image, 'techman_image', self.image_callback, 10)
-    
-    def image_callback(self, data):
-        self.get_logger().info('Received image')
-        
-        bridge = CvBridge()
-        img = bridge.imgmsg_to_cv2(img_msg = data)
+# from .robotComm import send_script, set_io, moveTo, gripper, takePic
+from .robotWorkspace import Pose
+from .myRobot import myRobot
 
 def main(args=None):
     rclpy.init(args=args)
-    node = ImageSub('sushiro')
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
+    node = myRobot('sushiro')
+    try:
+        rclpy.spin(node)
+    except Exception as e:
+        node.destroy_node()
+        rclpy.shutdown()
+        raise e
 
 if __name__ == '__main__':
     main()
