@@ -52,3 +52,9 @@ CATKIN_IGNORE
 
 # Log dir
 log/
+
+# img data
+*.jpg
+
+# macOS system file
+.DS_Store
