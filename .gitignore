@@ -55,6 +55,7 @@ log/
 
 # img data
 *.jpg
+*.png
 
 # macOS system file
 .DS_Store
