@@ -19,9 +19,9 @@ def Findedge(counter):
     box = cv.boxPoints(rect)
     box = np.int0(box)
     sortedbox = sorted([point for point in box], key = lambda point : point[0])
-    print(sortedbox[0:2])
+    # print(sortedbox[0:2])
     left_edge_mid = np.mean(sortedbox[0:2], axis = 0)
-    print(left_edge_mid)
+    # print(left_edge_mid)
     return left_edge_mid
 
 def DetectRice(bgrimg: np.ndarray):
@@ -100,6 +100,10 @@ def DetectCucumber(bgrimg: np.ndarray):
     return cucumber_mask, cucumber 
 
 def DetectSalmon(bgrimg: np.ndarray):
+
+    crop = (400, 0)
+    bgrimg = bgrimg[:, 400:]
+
     hsvimg = cv.cvtColor(bgrimg, cv.COLOR_BGR2HSV)
     hsvimg = cv.GaussianBlur(hsvimg, (51, 51), 0)
 
@@ -108,6 +112,7 @@ def DetectSalmon(bgrimg: np.ndarray):
 
     [h, w] = hsvimg.shape[:-1]
     salmon_mask = np.zeros([h, w])
+    print(h, w)
     check_range = hsvimg
     mask = cv.inRange(check_range, lower_bound, upper_bound)
     kernel = np.ones((5,5), np.uint8)
@@ -117,7 +122,7 @@ def DetectSalmon(bgrimg: np.ndarray):
     contours, _ = cv.findContours(image=mask.astype(np.uint8), mode=cv.RETR_LIST, method=cv.CHAIN_APPROX_NONE)
     valid_cnt = []
     for cnt in contours:
-        if cv.contourArea(cnt) >= 30000:
+        if cv.contourArea(cnt) >= 15000:
             valid_cnt.append(cnt)
     cv.drawContours(image = salmon_mask, contours = valid_cnt, contourIdx = -1, color = (255, 255, 255), thickness = cv.FILLED)
     salmons = []
@@ -131,7 +136,7 @@ def DetectSalmon(bgrimg: np.ndarray):
         orientation = phi * 180 / math.pi
 
         salmon = dict()
-        salmon['center'] = (cx, cy)
+        salmon['center'] = (cx+400, cy)
         salmon['edge_mid'] = mid_point
         salmon['orientation'] = orientation
         salmons.append(salmon)
@@ -160,15 +165,16 @@ def main():
         ax1.imshow(rgbimg)
 
         # Detect Salmon
-        # ax3 = fig3.add_subplot(1, 3, i+1)
-        # ax3.set_title(f"found {len(salmons)}", fontsize=10)
-        # ax3.imshow(salmon_map, cmap = 'gray')
-        # for salmon in salmons:
-        #     ax3.scatter(int(salmon['center'][0]), int(salmon['center'][1]), color = 'r', s = 5)
-        #     ax3.scatter(int(salmon['edge_mid'][0]), int(salmon['edge_mid'][1]), color = 'g', s = 5)
+        ax3 = fig3.add_subplot(1, 3, i+1)
+        ax3.set_title(f"found {len(salmons)}", fontsize=10)
+        ax3.imshow(salmon_map, cmap = 'gray')
+        for salmon in salmons:
+            ax3.scatter(int(salmon['center'][0]), int(salmon['center'][1]), color = 'r', s = 5)
+            ax3.scatter(int(salmon['edge_mid'][0]), int(salmon['edge_mid'][1]), color = 'g', s = 5)
 
         # Detect Cucumber
         # ax3 = fig3.add_subplot(5, 4, i+1)
+        # ax3.scatter(int(cucumber['center'][0]), int(cucumber['center'][1]), color = 'r', s = 0.5)
         # ax3.imshow(cucumber_map, cmap = 'gray')
 
         # Detect Rice

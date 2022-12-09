@@ -18,12 +18,14 @@ def Denoise(img: np.ndarray) -> np.ndarray:
     return img
 
 rollCalib = cv.imread('rice_42.png')
-sashimiCalib = cv.imread('rice_40.png')
+sashimiCalib = cv.imread('cucumber_cali.png')
 
-crop1 = (700, 500)
-crop2 = (100, 300)
+crop1 = (500, 700)
+crop2 = (500, 700)
 rollCalib = rollCalib[700:, 500:800, :]
-sashimiCalib = sashimiCalib[100:500, 300:700, :]
+sashimiCalib = sashimiCalib[700:, 500:800, :]
+temp1 = rollCalib
+temp2 = sashimiCalib
 rollCalib = cv.cvtColor(rollCalib, cv.COLOR_BGR2GRAY)
 sashimiCalib = cv.cvtColor(sashimiCalib, cv.COLOR_BGR2GRAY)
 rollCalib = cv.adaptiveThreshold(rollCalib, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY_INV, 11, 2)
@@ -59,8 +61,10 @@ cv.drawContours(empty_2, [max_cnt_2], -1, color = (255, 0, 0), thickness = cv.FI
 fig = plt.figure(figsize=(10, 8))
 ax1 = fig.add_subplot(1, 2, 1)
 ax1.set_title(f"scale of tekamaki: {scale1:.2f}/mm^2, center at {center1//scale1}")
-ax1.imshow(empty_1, cmap = 'gray')
+# ax1.imshow(empty_1, cmap = 'gray')
+ax1.imshow(temp1, cmap = 'gray')
 ax2 = fig.add_subplot(1, 2, 2)
-ax2.set_title(f"scale of sashimi: {scale2:.2f}/mm^2, center at {center2//scale1}")
-ax2.imshow(empty_2, cmap = 'gray')
+ax2.set_title(f"scale of sashimi: {scale2:.2f}/mm^2, center at {center2//scale2}")
+# ax2.imshow(empty_2, cmap = 'gray')
+ax2.imshow(temp2, cmap = 'gray')
 plt.show()
