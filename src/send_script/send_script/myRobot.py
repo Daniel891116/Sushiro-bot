@@ -18,6 +18,7 @@ from copy import deepcopy
 from .robotWorkspace import * # ...Pose
 from .MCU import MCU
 from .img_check import findSalmon, isRiceballOK, findCucumber
+from .riceManager import riceManager
 
 class myRobot(Node):
 	"""class myRobot, deal with the comms of the robot"""
@@ -36,6 +37,7 @@ class myRobot(Node):
 
 		self.bridge = CvBridge()
 		self.img = None
+		self.riceManager = riceManager()
 
 		# start sushi service
 		self.callbackEvent = Event()
@@ -66,12 +68,31 @@ class myRobot(Node):
 		self.callbackEvent.clear()
 		return self.img
 
+	def block(self):
+		self.imageCapture()
+
 	# gripper
 	def gripper(self, cmd):
 		if cmd.casefold() == "close".casefold():
 			self.set_io(1.0)
 		elif cmd.casefold() == "open".casefold():
 			self.set_io(0.0)
+		elif cmd.casefold() == "shake".casefold():
+			# do it itself
+			while not self.gripper_cli.wait_for_service(timeout_sec = 1.0):
+				self.gripper_node.get_logger().info('Gripper service not availabe, waiting again...')
+			io_cmd = SetIO.Request()
+			io_cmd.module = 1
+			io_cmd.type = 2
+			io_cmd.pin = 0
+			io_cmd.state = 0.0
+
+			self.gripper_cli.call_async(io_cmd)
+			sleep(0.5)
+			for _ in range(50):
+				io_cmd.state = 1.0 - io_cmd.state
+				self.gripper_cli.call_async(io_cmd)
+				sleep(0.1)
 		else:
 			self.gripper_node.get_logger().info(f"[Error] Unknown gripper command: \'{cmd}\'")
 			raise ValueError
@@ -101,13 +122,18 @@ class myRobot(Node):
 
 		io_cmd = SetIO.Request()
 		io_cmd.module = 1
-		io_cmd.type = 1
+		io_cmd.type = 2 # instant do
 		io_cmd.pin = pin
 		io_cmd.state = 1.0
-		for _ in range(100):
+
+		self.moveAddZ(-100)
+		self.moveAddZ(100)
+		self.gripper_cli.call_async(io_cmd)
+		sleep(0.1)
+		for _ in range(200):
 			io_cmd.state = 1.0 - io_cmd.state
 			self.gripper_cli.call_async(io_cmd)
-			sleep(0.1)
+			sleep(0.05)
 		# self.gripper_node.destroy_node()
 
 	# move
@@ -130,7 +156,7 @@ class myRobot(Node):
 		self.currentPose.rx = rx if rx is not None else self.currentPose.rx
 		self.currentPose.ry = ry if ry is not None else self.currentPose.ry
 		self.currentPose.rz = rz if rz is not None else self.currentPose.rz
-		self.send_script(f"Line(\"CPP\",{x}, {y}, {z}, {rx}, {ry}, {rz}, {speed},200,0,false)")
+		self.moveToPose(self.currentPose, speed)
 
 	def moveToPose(self, pose, speed = 100):
 		self.currentPose = deepcopy(pose)
@@ -184,9 +210,67 @@ class myRobot(Node):
 		self.currentPose.rz += addrz
 		self.moveToPose(self.currentPose, speed)
 
+	def getRice(self, target = "rice"):
+		self.moveToPose(waterBowlPose("up"))
+		self.moveToPose(waterBowlPose("down"))
+		self.block()
+		self.gripper("open")
+		self.gripper("shake")
+		self.moveToPose(waterBowlPose("up"))
+		self.gripper("shake")
+
+		# target: roll / rice
+		self.moveToPose(riceBowlPose("up"))
+		self.gripper("open")
+		self.moveToPose(self.riceManager.consult(target))
+		self.gripper("close")
+		sleep(1)
+		self.block()
+		self.moveToZ(250)
+		self.moveToPose(rollRiceStandardPose if target.casefold() == "roll".casefold() else riceStandardPose)
+		self.gripper("open")
+		self.block()
+		self.gripper("shake")
+		self.moveToZ(250)
+
+	def getCucumber(self):
+		self.moveToPose(cucumberPhotoPose)
+		result = findCucumber(self.imageCapture())
+		if result[0]:
+			self.gripper("open")
+			dx, dy = result[1]
+			self.currentPose.x += (-dx/sqrt(2) -dy/sqrt(2))
+			self.currentPose.y += (-dx/sqrt(2) +dy/sqrt(2))
+			self.currentPose.z = cucumberHeight
+			self.moveToPose(self.currentPose)
+			self.gripper("close")
+			self.moveToZ(250)
+			self.moveToPose(cucumberStandardPose)
+			self.gripper("open")
+			self.moveToZ(250)
+		else:
+			print("[Error] Cannot find cucumbers !!! Continue...")
+
+	def getSalmon(self):
+		self.moveToPose(salmonPhotoPose)
+		result = findSalmon(self.imageCapture(f"salmonTest_{self.count}.png"))
+		if result[0]:
+			self.gripper("open")
+			dx, dy = result[1]
+			self.currentPose.x += (-dx/sqrt(2) -dy/sqrt(2) -salmonBias/sqrt(2))
+			self.currentPose.y += (-dx/sqrt(2) +dy/sqrt(2) -salmonBias/sqrt(2))
+			self.currentPose.z = salmonHeight
+			self.moveToPose(self.currentPose)
+			self.gripper("close")
+			self.moveToZ(250)
+			self.count += 1
+
+			# find rice
+		else:
+			print("[Error] Cannot find salmon !!! Continue...")
+			
 	# command service
 	def startCommandService(self):
-		count = 0
 		while True:
 			command = input("Command: ")
 			if command[0] == 'v':
@@ -195,6 +279,14 @@ class myRobot(Node):
 				count += 1
 			elif command[0] == 'g':
 				self.set_io(float(command[1]))
+			elif command[0] == 'w':
+				self.getRice()
+			elif command[0:2] == 'xy':
+				x = float(command.split()[1])
+				y = float(command.split()[2])
+				print(f"x: {x}")
+				print(f"y: {y}")
+				self.moveToXYZ(x = x, y = y)
 			elif command[0] == 'x':
 				x = float(command[2:])
 				print(f"x: {x}")
@@ -230,34 +322,9 @@ class myRobot(Node):
 					self.count += 1
 					# print
 				elif command[1] == 'c':
-					self.moveToPose(cucumberPhotoPose)
-					result = findCucumber(self.imageCapture())
-					if result[0]:
-						self.gripper("open")
-						dx, dy = result[1]
-						self.currentPose.x += (-dx/sqrt(2) -dy/sqrt(2))
-						self.currentPose.y += (-dx/sqrt(2) +dy/sqrt(2))
-						self.currentPose.z = cucumberHeight
-						self.moveToPose(self.currentPose)
-						self.gripper("close")
-						self.moveToZ(250)
-					else:
-						print("[Error] Cannot find cucumbers !!! Continue...")
+					self.getCucumber()
 				elif command[1] == 's':
-					self.moveToPose(salmonPhotoPose)
-					result = findSalmon(self.imageCapture(f"salmonTest_{self.count}.png"))
-					if result[0]:
-						self.gripper("open")
-						dx, dy = result[1]
-						self.currentPose.x += (-dx/sqrt(2) -dy/sqrt(2) -salmonBias/sqrt(2))
-						self.currentPose.y += (-dx/sqrt(2) +dy/sqrt(2) -salmonBias/sqrt(2))
-						self.currentPose.z = salmonHeight
-						self.moveToPose(self.currentPose)
-						self.gripper("close")
-						self.moveToZ(250)
-						self.count += 1
-					else:
-						print("[Error] Cannot find salmon !!! Continue...")
+					self.getSalmon()
 			elif command[0] == '?':
 				print(self.currentPose)
 			elif command[0] == 't':
