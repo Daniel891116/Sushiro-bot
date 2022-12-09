@@ -6,19 +6,35 @@ import math
 import matplotlib.pyplot as plt
 from .imgutils import DetectRice, DetectCucumber, DetectSalmon
 
-def isSashimiOK(img: np.ndarray) -> bool:
-    _, Salmon = DetectSalmon(img)
-    print(Salmon)
-    return False
+sashimi_gripper_pos  = np.array([ 72, 103])
+tekamaki_gripper_pos = np.array([199, 147])
 
-def isRiceballOK(img) -> bool:
+sashimi_calib_scale = 5.27
+tekamaki_calib_scale = 4.30
+
+def isSashimiOK(img: np.ndarray) -> tuple:
+    _, Salmons = DetectSalmon(img)
+    displacement = Salmons[0]['edge_mid']/sashimi_calib_scale - sashimi_gripper_pos
+    print(f"gripper should move {displacement}")
+    return displacement
+
+def isRiceballOK(img) -> tuple:
     _, Rice = DetectRice(img)
-    print(Rice)
-    return False
+    displacement = Rice['center']/tekamaki_calib_scale - tekamaki_gripper_pos
+    print(f"gripper should move {displacement}")
+    if Rice['valid']:
+        return True, (0, 0)
+    else:
+        return False, displacement
 
-def findCucumber(img) -> bool:
+def findCucumber(img) -> tuple:
     _, Cucumber = DetectCucumber(img)
-    return False
+    displacement = Cucumber['center']/sashimi_calib_scale - sashimi_gripper_pos
+    print(f"gripper should move {displacement}")
+    if Cucumber.keys != []:
+        return True, displacement
+    else:
+        return False, (0, 0)
 
 def isMakkiRiceEnough(img) -> bool:
     return False
