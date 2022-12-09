@@ -5,6 +5,25 @@ import os
 import math
 import matplotlib.pyplot as plt
 
+def Findedge(counter):
+    # sobel_x = np.array\
+    # (
+    #     [
+    #         [ 1,  0, -1],
+    #         [ 2,  0, -2],
+    #         [ 1,  0, -1]
+    #     ]
+    # )
+    # x_edge = cv.filter2D(input, ddepth=-1, kernel = cv.flip(sobel_x, -1)).astype(np.uint8)
+    rect = cv.minAreaRect(counter)
+    box = cv.boxPoints(rect)
+    box = np.int0(box)
+    sortedbox = sorted([point for point in box], key = lambda point : point[0])
+    print(sortedbox[0:2])
+    left_edge_mid = np.mean(sortedbox[0:2], axis = 0)
+    print(left_edge_mid)
+    return left_edge_mid
+
 def DetectRice(bgrimg: np.ndarray):
     thres_area = 45000
     lower_bound = np.array([35,  10,  100])
@@ -91,19 +110,19 @@ def DetectSalmon(bgrimg: np.ndarray):
     salmon_mask = np.zeros([h, w])
     check_range = hsvimg
     mask = cv.inRange(check_range, lower_bound, upper_bound)
-    salmon_mask = mask
     kernel = np.ones((5,5), np.uint8)
-    salmon_mask = cv.erode(salmon_mask, kernel, iterations = 1)
-    salmon_mask = cv.dilate(salmon_mask, kernel, iterations = 2)
+    mask = cv.erode(mask, kernel, iterations = 1)
+    mask = cv.dilate(mask, kernel, iterations = 2)
 
-    contours, _ = cv.findContours(image=salmon_mask.astype(np.uint8), mode=cv.RETR_LIST, method=cv.CHAIN_APPROX_NONE)
+    contours, _ = cv.findContours(image=mask.astype(np.uint8), mode=cv.RETR_LIST, method=cv.CHAIN_APPROX_NONE)
     valid_cnt = []
     for cnt in contours:
         if cv.contourArea(cnt) >= 30000:
             valid_cnt.append(cnt)
+    cv.drawContours(image = salmon_mask, contours = valid_cnt, contourIdx = -1, color = (255, 255, 255), thickness = cv.FILLED)
     salmons = []
-
     for cnt in valid_cnt:
+        mid_point = Findedge(cnt)
         M = cv.moments(cnt)
         cx = int(M['m10']/M['m00'])
         cy = int(M['m01']/M['m00'])
@@ -113,17 +132,18 @@ def DetectSalmon(bgrimg: np.ndarray):
 
         salmon = dict()
         salmon['center'] = (cx, cy)
+        salmon['edge_mid'] = mid_point
         salmon['orientation'] = orientation
         salmons.append(salmon)
     
     return salmon_mask, salmons
 
-img_dir = "cucumber"
+img_dir = "salmon"
 
 filenames = sorted(glob.glob(os.path.join(os.getcwd(), img_dir, "*.png")))
 # filename = "Photos/rice_2.png"
 fig1 = plt.figure(figsize=(10, 8))
-# fig3 = plt.figure(figsize=(10, 8))
+fig3 = plt.figure(figsize=(10, 8))
 for i, filename in enumerate(filenames):
 
     bgrimg = cv.imread(filename)
@@ -138,11 +158,12 @@ for i, filename in enumerate(filenames):
     ax1.imshow(rgbimg)
 
     # Detect Salmon
-    # ax3 = fig3.add_subplot(1, 3, i+1)
-    # ax3.set_title(f"found {len(salmons)}", fontsize=10)
-    # ax3.imshow(salmon_map, cmap = 'gray')
-    # for salmon in salmons:
-    #     ax3.scatter(int(salmon['center'][0]), int(salmon['center'][1]), color = 'r', s = 5)
+    ax3 = fig3.add_subplot(1, 3, i+1)
+    ax3.set_title(f"found {len(salmons)}", fontsize=10)
+    ax3.imshow(salmon_map, cmap = 'gray')
+    for salmon in salmons:
+        ax3.scatter(int(salmon['center'][0]), int(salmon['center'][1]), color = 'r', s = 5)
+        ax3.scatter(int(salmon['edge_mid'][0]), int(salmon['edge_mid'][1]), color = 'g', s = 5)
 
     # Detect Cucumber
     # ax3 = fig3.add_subplot(5, 4, i+1)
