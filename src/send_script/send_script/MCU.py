@@ -76,5 +76,8 @@ class MCU():
 # reset
 
 # manual
-# 0 0 0
-# 90 90 90
+# 10 10 10
+# 170 170 170
+
+# nigiri
+# tekkamaki

@@ -12,7 +12,7 @@ tekamaki_gripper_pos = np.array([199, 147])
 sashimi_calib_scale = 5.27
 tekamaki_calib_scale = 4.30
 
-def isSashimiOK(img: np.ndarray) -> tuple:
+def findSalmon(img: np.ndarray) -> tuple:
     _, Salmons = DetectSalmon(img)
     displacement = Salmons[0]['edge_mid']/sashimi_calib_scale - sashimi_gripper_pos
     print(f"gripper should move {displacement}")

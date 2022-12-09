@@ -15,6 +15,7 @@ from threading import Thread, Event
 
 from .robotWorkspace import * # ...Pose
 from .MCU import MCU
+from .img_check import isSalmonOK, isRiceballOK
 
 class myRobot(Node):
 	"""class myRobot, deal with the comms of the robot"""
@@ -192,6 +193,10 @@ class myRobot(Node):
 					rz = float(command[3:])
 					print(f"rz: {rz}")
 					self.moveToRZ(rz)
+			elif command[0] == 'p':
+				if command[1] == 'r':
+					self.moveToPose(ricePhotoPose)
+					self.imageCapture()
 			elif command[0] == 'q':
 				# quit
 				break

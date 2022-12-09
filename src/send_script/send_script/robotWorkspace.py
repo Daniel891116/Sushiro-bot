@@ -32,3 +32,7 @@ except ImportError:
 		rz: float
 
 readyPose = Pose(300, 300, 400, -180, 0, 135)
+ricePhotoPose = Pose(350, 450, 300, -180, 0, 45)
+rollPhotoPose = Pose(350, 450, 400, -180, 0, 45)
+cucumberPhotoPose = Pose(400, 150, 300, -180, 0, 45)
+salmonPhotoPose = Pose(325, 75, 300, -180, 0, 45)
