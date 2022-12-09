@@ -30,6 +30,9 @@ def main(args=None):
 	node = myRobot('sushiro')
 	try:
 		rclpy.spin(node)
+	except KeyboardInterrupt:
+		node.destroy_node()
+		rclpy.shutdown()
 	except Exception as e:
 		node.destroy_node()
 		rclpy.shutdown()

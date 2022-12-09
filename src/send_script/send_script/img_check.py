@@ -6,17 +6,20 @@ import math
 import matplotlib.pyplot as plt
 from .imgutils import DetectRice, DetectCucumber, DetectSalmon
 
-sashimi_gripper_pos  = np.array([ 72, 103])
-tekamaki_gripper_pos = np.array([199, 147])
+sashimi_gripper_pos  = np.array([169, 205])
+tekamaki_gripper_pos = np.array([153, 193])
 
-sashimi_calib_scale = 5.27
+sashimi_calib_scale = 3.89
 tekamaki_calib_scale = 4.30
 
 def findSalmon(img: np.ndarray) -> tuple:
     _, Salmons = DetectSalmon(img)
+    if Salmons == []:
+        return False, (0, 0)
     displacement = Salmons[0]['edge_mid']/sashimi_calib_scale - sashimi_gripper_pos
+    print(f"found {len(Salmons)}")
     print(f"gripper should move {displacement}")
-    return displacement
+    return True, displacement
 
 def isRiceballOK(img) -> tuple:
     _, Rice = DetectRice(img)
@@ -28,10 +31,10 @@ def isRiceballOK(img) -> tuple:
         return False, displacement
 
 def findCucumber(img) -> tuple:
-    _, Cucumber = DetectCucumber(img)
+    img, Cucumber = DetectCucumber(img)
     displacement = Cucumber['center']/sashimi_calib_scale - sashimi_gripper_pos
     print(f"gripper should move {displacement}")
-    if Cucumber.keys != []:
+    if Cucumber.keys() != []:
         return True, displacement
     else:
         return False, (0, 0)

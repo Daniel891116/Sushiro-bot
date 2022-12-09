@@ -1,1 +1,1 @@
-from foodDetection import *
+from .foodDetection import *

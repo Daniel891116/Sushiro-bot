@@ -59,7 +59,7 @@ def DetectRice(bgrimg: np.ndarray):
     rice = dict()
     rice['area'] = rice_area
     rice['area_rate'] = rice_area / box_area
-    rice['center'] = (cx, cy)
+    rice['center'] = np.array([cx, cy])
     rice['orientation'] = orientation
     rice['valid'] = rice_area >= thres_area and (rice_area / box_area) >= 0.7 and abs(abs(orientation) - 90) <= 15
     
@@ -94,12 +94,15 @@ def DetectCucumber(bgrimg: np.ndarray):
     cv.drawContours(cucumber_mask, [box], -1,color = (255,255,255),thickness = 2)
 
     cucumber = dict()
-    cucumber['center'] = (cx, cy)
+    cucumber['center'] = np.array([cx, cy])
     cucumber['orientation'] = orientation
     
     return cucumber_mask, cucumber 
 
 def DetectSalmon(bgrimg: np.ndarray):
+    crop = np.array([400, 0])
+    bgrimg = bgrimg[:, 400:]
+
     hsvimg = cv.cvtColor(bgrimg, cv.COLOR_BGR2HSV)
     hsvimg = cv.GaussianBlur(hsvimg, (51, 51), 0)
 
@@ -117,7 +120,7 @@ def DetectSalmon(bgrimg: np.ndarray):
     contours, _ = cv.findContours(image=mask.astype(np.uint8), mode=cv.RETR_LIST, method=cv.CHAIN_APPROX_NONE)
     valid_cnt = []
     for cnt in contours:
-        if cv.contourArea(cnt) >= 30000:
+        if cv.contourArea(cnt) >= 15000:
             valid_cnt.append(cnt)
     cv.drawContours(image = salmon_mask, contours = valid_cnt, contourIdx = -1, color = (255, 255, 255), thickness = cv.FILLED)
     salmons = []
@@ -126,13 +129,14 @@ def DetectSalmon(bgrimg: np.ndarray):
         M = cv.moments(cnt)
         cx = int(M['m10']/M['m00'])
         cy = int(M['m01']/M['m00'])
+        center = np.array([cx, cy])
 
         phi = 0.5 * math.atan2(2 * M['nu11'], M['nu20'] - M['nu02'])
         orientation = phi * 180 / math.pi
 
         salmon = dict()
-        salmon['center'] = (cx, cy)
-        salmon['edge_mid'] = mid_point
+        salmon['center'] = center + crop
+        salmon['edge_mid'] = mid_point + crop
         salmon['orientation'] = orientation
         salmons.append(salmon)
     
