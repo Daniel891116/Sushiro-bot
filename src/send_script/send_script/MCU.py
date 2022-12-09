@@ -36,8 +36,8 @@ class MCU():
 
 	def getOrder(self):
 		while True:
-			if ser.in_waiting():
-				data = ser.readline().decode().strip()
+			if self.ser.in_waiting():
+				data = self.ser.readline().decode().strip()
 				if data.casefold() == "nigiri".casefold():
 					return 0
 				elif data.casefold() == "tekkamaki".casefold():
@@ -49,7 +49,26 @@ class MCU():
 	def platformManual(self):
 		self.ser.write(b'manual\r\n')
 
-	def 
+	def platformDegree(self, inn, mid, out):
+		self.ser.write(f'{inn}_{mid}_{out}\r\n')
+
+	def nigiriRoll(self):
+		self.ser.write(b'nigiri_roll\r\n')
+
+	def tekkaRoll(self,mode):
+		if mode:
+			self.ser.write(b'tekka_roll_in\r\n')
+		else:
+			self.ser.write(b'tekka_roll_out\r\n')
+
+	def platformHalf(self):
+		self.ser.write(b'half\r\n')
+
+	def platformFlat(self):
+		self.ser.write(b'reset\r\n')
+
+	def sushiOrder(self,kind):
+		self.ser.write(f'order_{kind}\r\n')
 
 # auto
 # roll
