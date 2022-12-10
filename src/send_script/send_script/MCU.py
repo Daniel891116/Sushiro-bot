@@ -55,7 +55,7 @@ class MCU():
 	def nigiriRoll(self):
 		self.ser.write(b'nigiri_roll\r\n')
 
-	def tekkaRoll(self,mode):
+	def tekkaRoll(self, mode):
 		if mode:
 			self.ser.write(b'tekka_roll_in\r\n')
 		else:

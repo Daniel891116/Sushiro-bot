@@ -89,17 +89,20 @@ readyPose = Pose(300, 300, 400, -180, 0, 135)
 
 ricePhotoPose = Pose(350, 450, 300, -180, 0, 45)
 riceStandardPose = Pose(400, 400, 180, -180, 0, 45)
+riceFormPose = lambda x, y, place: Pose(x, y, 158 if place.casefold() == "down".casefold() else 250, 135, 0, 135)
+riceBias = 35
 
 rollPhotoPose = Pose(350, 450, 400, -180, 0, 45)
 rollRiceStandardPose = Pose(400, 400, 200, -180, 0, 135)
 cucumberStandardPose = Pose(400, 400, 200, -180, 0, 45)
 
 cucumberPhotoPose = Pose(400, 150, 400, -180, 0, 45)
-cucumberHeight = 140 + 2.5
+cucumberHeight = 140 + 1
 
 salmonPhotoPose = Pose(325, 75, 400, -180, 0, 45)
 salmonHeight = 140 + 2.5
 salmonBias = 10 # 15
+# salmonLength = 
 
 riceBowlPose = lambda place: Pose(295/sqrt(2) - 250/sqrt(2), 295/sqrt(2) + 250/sqrt(2), 160 if place.casefold() == "down".casefold() else 250, -180, 0, 45)
 # plate, 180 for bowl
@@ -108,3 +111,10 @@ riceSize = 50
 riceDecay = 10
 riceHeight = lambda target: 5 if target.casefold() == "roll".casefold() else 10
 waterBowlPose = lambda place: Pose(475/sqrt(2) - 250/sqrt(2), 475/sqrt(2) + 250/sqrt(2), 140 if place.casefold() == "down".casefold() else 250, -180, 0, 45)
+
+platformOutPose = lambda place: Pose(475, 475, 150 if place.casefold() == "down" else 250, -180, 0, 45)
+platformOut2InPose = Pose(448, 448, 150, -180, 0, 45)
+
+platformInPose = lambda place: Pose(503, 483, 133 if place.casefold() == "down" else 250, -180, 30, 45)
+platformIn2OutPose = Pose(522, 502, 133, -180, 30, 45)
+platformBackInPose = Pose(520, 500, 133, -180, 30, 45)

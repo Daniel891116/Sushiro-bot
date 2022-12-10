@@ -26,7 +26,7 @@ def isRiceballOK(img) -> tuple:
     displacement = Rice['center']/tekamaki_calib_scale - tekamaki_gripper_pos
     print(f"gripper should move {displacement}")
     if Rice['valid']:
-        return True, (0, 0)
+        return True, displacement
     else:
         return False, displacement
 

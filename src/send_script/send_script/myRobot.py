@@ -32,8 +32,12 @@ class myRobot(Node):
 		self.gripper_node = rclpy.create_node('gripper')
 		self.gripper_cli = self.gripper_node.create_client(SetIO, 'set_io')
 
-		self.gripper("open")
 		self.moveToPose(readyPose)
+		self.platformState = False # assumed outside
+		# 0: out, 1: in
+		self.movePlatform()
+		self.moveToPose(readyPose)
+		self.gripper("open")
 
 		self.bridge = CvBridge()
 		self.img = None
@@ -210,6 +214,24 @@ class myRobot(Node):
 		self.currentPose.rz += addrz
 		self.moveToPose(self.currentPose, speed)
 
+	def movePlatform(self):
+		if self.platformState:
+			# now inside, move outside
+			self.gripper("open")
+			self.moveToPose(platformInPose("up"))
+			self.moveToPose(platformInPose("down"))
+			self.moveToPose(platformIn2OutPose)
+			self.moveToPose(platformBackInPose)
+			self.moveToZ(250)
+		else:
+			# now outside, move inside
+			self.gripper("close")
+			self.moveToPose(platformOutPose("up"))
+			self.moveToPose(platformOutPose("down"))
+			self.moveToPose(platformOut2InPose)
+			self.moveToZ(250)
+		self.platformState = not self.platformState
+
 	def getRice(self, target = "rice"):
 		self.moveToPose(waterBowlPose("up"))
 		self.moveToPose(waterBowlPose("down"))
@@ -268,9 +290,13 @@ class myRobot(Node):
 			# find rice
 		else:
 			print("[Error] Cannot find salmon !!! Continue...")
+
+	def delicateSalmon(self):
+		pass
 			
 	# command service
 	def startCommandService(self):
+		self.block()
 		while True:
 			command = input("Command: ")
 			if command[0] == 'v':
@@ -315,7 +341,21 @@ class myRobot(Node):
 			elif command[0] == 'p':
 				if command[1] == 'r':
 					self.moveToPose(ricePhotoPose)
-					print(isRiceballOK(self.imageCapture()))
+					result = isRiceballOK(self.imageCapture())
+					print(result)
+					if result[0]:
+						print("Nice rice, next step")
+					else:
+						dx, dy = result[1]
+						pose = deepcopy(riceFormPose(self.currentPose.x, self.currentPose.y, "up"))
+						pose.x += (-dx/sqrt(2) -dy/sqrt(2) -riceBias)
+						pose.y += (-dx/sqrt(2) +dy/sqrt(2) -riceBias)
+						self.moveToPose(pose)
+						self.moveToPose(riceFormPose(pose.x, pose.y, "down"))
+						self.gripper("close")
+						self.block()
+						self.gripper("open")
+						self.moveToZ(250)
 				elif command[1] == 'l':
 					self.moveToPose(rollPhotoPose)
 					self.imageCapture(f"roll1_{self.count}.png")
@@ -325,6 +365,8 @@ class myRobot(Node):
 					self.getCucumber()
 				elif command[1] == 's':
 					self.getSalmon()
+				elif command[1] == 't':
+					self.movePlatform()
 			elif command[0] == '?':
 				print(self.currentPose)
 			elif command[0] == 't':
