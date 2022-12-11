@@ -24,6 +24,88 @@ def Findedge(counter):
     print(left_edge_mid)
     return left_edge_mid
 
+def GetOuterBox(img: np.ndarray):
+    x_min = -1
+    x_max = -1
+    y_min = 0
+    y_max = img.shape[0]
+
+    def edge(scan1: np.ndarray, scan2: np.ndarray, threshold: float):
+        max1 = np.max(scan1)
+        max2 = np.max(scan2)
+        if (max1 * threshold >= np.mean(scan1)) ^ (max2 * threshold >= np.mean(scan2)):
+            return True
+        else:
+            return False
+
+    for x in range(img.shape[1] - 1):
+        if edge(img[:, x], img[:, x+1], 0.5) and (x_min == -1):
+            x_min = x
+
+    for x in range(img.shape[1] - 1, 1, -1):
+        if edge(img[:, x], img[:, x - 1], 0.5) and (x_max == -1):
+            x_max = x
+
+    # for y in range(img.shape[0] - 1):
+    #     if edge(img[y, :], img[y+1, :], 0.5) and (y_min == -1):
+    #         y_min = y
+
+    # for y in range(img.shape[0] - 1, 1, -1):
+    #     if edge(img[y, :], img[y - 1, :], 0.5) and (y_max == -1):
+    #         y_max = y
+
+    return [[x_min, x_max], [y_min, y_max]]
+
+def GradeRiceRoll(seaweed_mask: np.ndarray, box: list):
+    x_range = box[0]
+    y_range = box[1]
+    w = box[0][1] - box[0][0]
+    h = box[1][1] - box[1][0]
+    seaweed_mask = seaweed_mask[y_range[0]:y_range[1], x_range[0]:x_range[1]]
+    rice_mask = 255 - seaweed_mask
+
+    def GetPropotion(img: np.ndarray) -> float:
+        return np.mean(img)/np.max(img)
+
+    def GetDistribution(img: np.ndarray) -> list:
+        y_detect = 0
+        h_detect = 100
+        distribution = []
+
+        while y_detect < h - h_detect:
+            section = img[y_detect:y_detect + h_detect,:]
+            if GetPropotion(section) >= 0.15: 
+                if not(distribution == [] or distribution[-1] == -1):
+                    distribution.append(-1)
+                y_detect += 1
+            else:
+                distribution.append([y_detect + h_detect / 2])
+                y_detect += 1
+
+        if len(distribution) != 0:
+            if distribution[-1] != -1:
+                distribution.append(-1)
+
+        return distribution
+
+    def ProcessDistribution(distribution: list) -> list:
+        current = []
+        output = []
+
+        for y in distribution:
+            if y == -1:
+                output.append(np.mean(current))
+                current.clear()
+            else:
+                current.append(y)
+        
+        return output
+
+    distribution = GetDistribution(rice_mask)
+    distribution = ProcessDistribution(distribution)
+
+    return rice_mask, np.array(distribution)
+
 def DetectRice(bgrimg: np.ndarray):
     thres_area = 45000
     lower_bound = np.array([35,  10,  100])
@@ -141,3 +223,38 @@ def DetectSalmon(bgrimg: np.ndarray):
         salmons.append(salmon)
     
     return salmon_mask, salmons
+
+def DetectRiceRoll(bgrimg: np.ndarray):
+    
+    crop = np.array([300, 150])
+    bgrimg = bgrimg[150:900, 300:1000]
+    hsvimg = cv.cvtColor(bgrimg, cv.COLOR_BGR2HSV)
+    hsvimg = cv.GaussianBlur(hsvimg, (21, 21), 0)
+
+    lower_bound = np.array([   0, 18,  28])
+    upper_bound = np.array([ 173, 64, 100])
+
+    [h, w] = hsvimg.shape[:-1]
+    seaweed_mask = np.zeros([h, w])
+    check_range = hsvimg
+    seaweed_mask = cv.inRange(check_range, lower_bound, upper_bound)
+    contours, _ = cv.findContours(image=seaweed_mask.astype(np.uint8), mode=cv.RETR_LIST, method=cv.CHAIN_APPROX_NONE)
+    # cv.drawContours(seaweed_mask, contours, -1, color = (255, 255, 255), thickness = cv.FILLED)
+    # all_area = 0
+    # for cnt in contours:
+    #     all_area += cv.contourArea(cnt)
+
+    kernel = np.ones((21,21), np.uint8)
+    seaweed_mask = cv.dilate(seaweed_mask, kernel, iterations = 1)
+    seaweed_mask = cv.erode(seaweed_mask, kernel, iterations = 1)
+    outcontours, _ = cv.findContours(image=seaweed_mask.astype(np.uint8), mode=cv.RETR_LIST, method=cv.CHAIN_APPROX_NONE)
+    
+    cv.drawContours(seaweed_mask, outcontours, -1, color = (255, 255, 255), thickness = cv.FILLED)
+    box = GetOuterBox(seaweed_mask)
+    rice_mask, distribution = GradeRiceRoll(seaweed_mask, box)
+    riceroll = dict()
+    riceroll['box'] = box
+    riceroll['empty_pos'] = distribution
+
+    return rice_mask, riceroll
+

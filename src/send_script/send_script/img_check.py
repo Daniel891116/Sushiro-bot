@@ -4,7 +4,7 @@ import glob
 import os
 import math
 import matplotlib.pyplot as plt
-from .imgutils import DetectRice, DetectCucumber, DetectSalmon
+from .imgutils import DetectRice, DetectCucumber, DetectSalmon, DetectRiceRoll
 
 sashimi_gripper_pos  = np.array([169, 205])
 tekamaki_gripper_pos = np.array([153, 193])
@@ -40,7 +40,12 @@ def findCucumber(img) -> tuple:
         return False, (0, 0)
 
 def isMakkiRiceEnough(img) -> bool:
-    return False
+    img, RiceRoll = DetectRiceRoll(img)
+    if len(RiceRoll['empty_pos']) == 0:
+        return True, []
+    else:
+        displacement = RiceRoll['empty_pos']/tekamaki_calib_scale - tekamaki_gripper_pos
+        return False, displacement
 
 def isMakkiTuffingOK(img) -> bool:
     return False

@@ -106,7 +106,7 @@ def GradeRiceRoll(seaweed_mask: np.ndarray, box: list):
     distribution = GetDistribution(rice_mask)
     distribution = ProcessDistribution(distribution)
 
-    return rice_mask, distribution
+    return rice_mask, np.array(distribution)
     
 def DetectRice(bgrimg: np.ndarray):
     thres_area = 45000
