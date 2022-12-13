@@ -223,6 +223,7 @@ def DetectSalmon(bgrimg: np.ndarray):
         salmon['orientation'] = orientation
         salmons.append(salmon)
     empty[:, 350:720] = salmon_mask
+    
     return empty, salmons
 
 def DetectRiceRoll(bgrimg: np.ndarray):
