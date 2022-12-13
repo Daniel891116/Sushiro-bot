@@ -116,15 +116,15 @@ def GradeRiceRoll(seaweed_mask: np.ndarray, box: list):
     
 def DetectRice(bgrimg: np.ndarray):
     thres_area = 45000
-    lower_bound = np.array([35,  10,  100])
-    upper_bound = np.array([86, 40, 255])
+    lower_bound = np.array([15,  10,  100])
+    upper_bound = np.array([60, 70, 255])
 
     hsvimg = cv.cvtColor(bgrimg, cv.COLOR_BGR2HSV)
     [h, w] = hsvimg.shape[:-1]
     rice_mask = np.zeros([h, w])
-    check_range = hsvimg[:, 470:960]
+    check_range = hsvimg[:, 470:870]
     mask = cv.inRange(check_range, lower_bound, upper_bound)
-    rice_mask[:, 470:960] = mask
+    rice_mask[:, 470:870] = mask
     # kernel = np.ones((7,7), np.uint8)
     # rice_mask = cv.erode(rice_mask, kernel, iterations = 1)
     # rice_mask = cv.dilate(rice_mask, kernel, iterations = 2)
@@ -272,9 +272,10 @@ def DetectRiceRoll(bgrimg: np.ndarray):
 
 def main():
 
-    img_dir = "real_salmon"
+    img_dir = "rice"
 
     filenames = sorted(glob.glob(os.path.join(os.getcwd(), img_dir, "*.png")))
+    print(len(filenames))
     # filename = "Photos/rice_2.png"
     fig1 = plt.figure(figsize=(10, 8))
     fig3 = plt.figure(figsize=(10, 8))
@@ -283,12 +284,12 @@ def main():
         bgrimg = cv.imread(filename)
         
         rgbimg = cv.cvtColor(bgrimg, cv.COLOR_BGR2RGB)
-        # rice_map, rice = DetectRice(bgrimg)
+        rice_map, rice = DetectRice(bgrimg)
         # cucumber_map, cucumber = DetectCucumber(bgrimg)
-        salmon_map, salmons = DetectSalmon(bgrimg)
+        # salmon_map, salmons = DetectSalmon(bgrimg)
         # riceroll_map, riceroll = DetectRiceRoll(bgrimg)
         
-        ax1 = fig1.add_subplot(2, 1, i+1)
+        ax1 = fig1.add_subplot(3, 2, i+1)
         hsvimg = cv.cvtColor(bgrimg, cv.COLOR_BGR2HSV)
         ax1.imshow(hsvimg)
 
@@ -298,15 +299,15 @@ def main():
         # ax3.imshow(riceroll_map, cmap = 'gray')
 
         # Detect Salmon
-        ax3 = fig3.add_subplot(2, 1, i+1)
-        ax3.set_title(f"found {len(salmons)}", fontsize=10)
-        ax3.imshow(salmon_map, cmap = 'gray')
-        for salmon in salmons:
-            print(salmon['edge_mid'])
-            print(f"gripper should move {salmon['edge_mid']/sashimi_calib_scale - sashimi_gripper_pos}")
-            print(f"gripper should move {salmon['center']/sashimi_calib_scale - sashimi_gripper_pos}")
-            ax3.scatter(int(salmon['center'][0]), int(salmon['center'][1]), color = 'r', s = 5)
-            ax3.scatter(int(salmon['edge_mid'][0]), int(salmon['edge_mid'][1]), color = 'g', s = 5)
+        # ax3 = fig3.add_subplot(2, 1, i+1)
+        # ax3.set_title(f"found {len(salmons)}", fontsize=10)
+        # ax3.imshow(salmon_map, cmap = 'gray')
+        # for salmon in salmons:
+        #     print(salmon['edge_mid'])
+        #     print(f"gripper should move {salmon['edge_mid']/sashimi_calib_scale - sashimi_gripper_pos}")
+        #     print(f"gripper should move {salmon['center']/sashimi_calib_scale - sashimi_gripper_pos}")
+        #     ax3.scatter(int(salmon['center'][0]), int(salmon['center'][1]), color = 'r', s = 5)
+        #     ax3.scatter(int(salmon['edge_mid'][0]), int(salmon['edge_mid'][1]), color = 'g', s = 5)
 
         # Detect Cucumber
         # ax3 = fig3.add_subplot(5, 4, i+1)
@@ -314,19 +315,19 @@ def main():
         # ax3.imshow(cucumber_map, cmap = 'gray')
 
         # Detect Rice
-        # ax3 = fig3.add_subplot(5, 4, i+1)
-        # ax3.imshow(rice_map, cmap = 'gray')
-        # ax3.set_title(f"{rice['area_rate']*100:.1f}%, {rice['orientation']:.1f}°, {rice['valid']}", fontsize=10)
-        # ax3.scatter(int(rice['center'][0]), int(rice['center'][1]), color = 'r', s = 0.5)
-        # ax3.scatter(int(rice['edge_mid'][0]), int(rice['edge_mid'][1]), color = 'g', s = 1)
-        # slope = math.tan(rice['orientation'] * math.pi / 180)
-        # (cx, cy) = rice['center']
-        # L_point = (0, -cx * slope + cy)
-        # R_point = (hsvimg.shape[1], (hsvimg.shape[1] - cx) * slope + cy)
-        # ax3.plot((L_point[0], R_point[0]), (L_point[1], R_point[1]), color = 'b', linewidth = 1)
+        ax3 = fig3.add_subplot(3, 2 , i+1)
+        ax3.imshow(rice_map, cmap = 'gray')
+        ax3.set_title(f"{rice['area_rate']*100:.1f}%, {rice['orientation']:.1f}°, {rice['valid']}", fontsize=10)
+        ax3.scatter(int(rice['center'][0]), int(rice['center'][1]), color = 'r', s = 0.5)
+        ax3.scatter(int(rice['edge_mid'][0]), int(rice['edge_mid'][1]), color = 'g', s = 1)
+        slope = math.tan(rice['orientation'] * math.pi / 180)
+        (cx, cy) = rice['center']
+        L_point = (0, -cx * slope + cy)
+        R_point = (hsvimg.shape[1], (hsvimg.shape[1] - cx) * slope + cy)
+        ax3.plot((L_point[0], R_point[0]), (L_point[1], R_point[1]), color = 'b', linewidth = 1)
 
-        # plt.xlim([0, rgbimg.shape[1]])
-        # plt.ylim([rgbimg.shape[0], 0])
+        plt.xlim([0, rgbimg.shape[1]])
+        plt.ylim([rgbimg.shape[0], 0])
 
     plt.show()
 

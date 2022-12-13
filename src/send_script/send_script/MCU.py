@@ -1,18 +1,13 @@
 # MCU communications
 import serial
-
-def roll(state):
-	if state.casefold() == "Rick Astely".casefold():
-		print("Never gonna give you up")
-	else:
-		pass
+from time import sleep
 
 class MCU():
 	def __init__(self, COM_PORT = None, BAUDRATE = 115200):
 		if COM_PORT is None:
 			from serial.tools.list_ports import comports
 			for comport in comports():
-				if comport.despcription.split('(')[0].strip() == "USB-SERIAL CH340":
+				if comport.despcription.strip() == "USB Serial":
 					COM_PORT = comport.device
 					break
 
@@ -22,14 +17,12 @@ class MCU():
 
 		try:
 			self.ser = serial.Serial(COM_PORT, BAUDRATE)
+			self.platformFlat();
 		except Exception as e:
 			print("=" * 32)
 			print(f"[Error] Cannot open serial port: {COM_PORT} with baudrate {BAUDRATE}")
 			print("=" * 32)
 			raise e
-
-		self.platformPlace = 1 # 1: out, 0: in
-		self.platformState = 0
 
 	def __del__(self):
 		self.ser.close()
@@ -44,31 +37,30 @@ class MCU():
 					return 1
 
 	def platformAuto(self):
-		self.ser.write(b'auto\r\n')
+		self.ser.write(b'1')
 
 	def platformManual(self):
-		self.ser.write(b'manual\r\n')
+		self.ser.write(b'2')
 
 	def platformDegree(self, inn, mid, out):
-		self.ser.write(f'{inn}_{mid}_{out}\r\n')
+		self.ser.write(f'{inn}_{mid}_{out}')
 
 	def nigiriRoll(self):
-		self.ser.write(b'nigiri_roll\r\n')
+		self.ser.write(b'3')
+		sleep(10)
 
 	def tekkaRoll(self, mode):
-		if mode:
-			self.ser.write(b'tekka_roll_in\r\n')
+		if mode.casefold() == "in".casefold():
+			self.ser.write(b'4')
 		else:
-			self.ser.write(b'tekka_roll_out\r\n')
+			self.ser.write(b'5')
 
 	def platformHalf(self):
-		self.ser.write(b'half\r\n')
+		self.ser.write(b'6')
+		sleep(3)
 
 	def platformFlat(self):
-		self.ser.write(b'reset\r\n')
-
-	def sushiOrder(self,kind):
-		self.ser.write(f'order_{kind}\r\n')
+		self.ser.write(b'0')
 
 # auto
 # roll

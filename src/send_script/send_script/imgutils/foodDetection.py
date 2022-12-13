@@ -18,11 +18,13 @@ def Findedge(counter):
     rect = cv.minAreaRect(counter)
     box = cv.boxPoints(rect)
     box = np.int0(box)
-    sortedbox = sorted([point for point in box], key = lambda point : point[0])
-    print(sortedbox[0:2])
-    left_edge_mid = np.mean(sortedbox[0:2], axis = 0)
-    print(left_edge_mid)
-    return left_edge_mid
+    sortedbox_X = sorted([point for point in box], key = lambda point : point[0])
+    sortedbox_Y = sorted([point for point in box], key = lambda point : point[1])
+    # print(sortedbox[0:2])
+    left_edge_mid = np.mean(sortedbox_X[0:2], axis = 0)
+    top_edge_mid = np.mean(sortedbox_Y[0:2], axis = 0)
+    # print(left_edge_mid)
+    return left_edge_mid, top_edge_mid
 
 def GetOuterBox(img: np.ndarray):
     x_min = -1
@@ -105,18 +107,18 @@ def GradeRiceRoll(seaweed_mask: np.ndarray, box: list):
     distribution = ProcessDistribution(distribution)
 
     return rice_mask, np.array(distribution)
-
+    
 def DetectRice(bgrimg: np.ndarray):
-    thres_area = 45000
-    lower_bound = np.array([35,  10,  100])
-    upper_bound = np.array([86, 40, 255])
+    thres_area = 10000
+    lower_bound = np.array([15,  10,  100])
+    upper_bound = np.array([60, 70, 255])
 
     hsvimg = cv.cvtColor(bgrimg, cv.COLOR_BGR2HSV)
     [h, w] = hsvimg.shape[:-1]
     rice_mask = np.zeros([h, w])
-    check_range = hsvimg[:, 470:960]
+    check_range = hsvimg[:, 470:870]
     mask = cv.inRange(check_range, lower_bound, upper_bound)
-    rice_mask[:, 470:960] = mask
+    rice_mask[:, 470:870] = mask
     # kernel = np.ones((7,7), np.uint8)
     # rice_mask = cv.erode(rice_mask, kernel, iterations = 1)
     # rice_mask = cv.dilate(rice_mask, kernel, iterations = 2)
@@ -124,10 +126,12 @@ def DetectRice(bgrimg: np.ndarray):
     contours, _ = cv.findContours(image=rice_mask.astype(np.uint8), mode=cv.RETR_LIST, method=cv.CHAIN_APPROX_NONE)
     max_cnt = sorted(contours, key = lambda cnt : -cv.contourArea(cnt))[0]
     # cv.drawContours(rice_mask, [max_cnt], -1, color = (255, 255, 255), thickness = cv.FILLED)
+    _, mid_point = Findedge(max_cnt)
     rice_area = cv.contourArea(max_cnt)
     M = cv.moments(max_cnt)
     cx = int(M['m10']/M['m00'])
     cy = int(M['m01']/M['m00'])
+    center = np.array([cx, cy])
 
     phi = 0.5 * math.atan2(2 * M['nu11'], M['nu20'] - M['nu02'])
     orientation = phi * 180 / math.pi
@@ -141,9 +145,18 @@ def DetectRice(bgrimg: np.ndarray):
     rice = dict()
     rice['area'] = rice_area
     rice['area_rate'] = rice_area / box_area
-    rice['center'] = np.array([cx, cy])
+    rice['center'] = center
+    rice['edge_mid'] = mid_point
     rice['orientation'] = orientation
-    rice['valid'] = rice_area >= thres_area and (rice_area / box_area) >= 0.7 and abs(abs(orientation) - 90) <= 15
+    rice['valid'] = rice_area >= thres_area and (rice_area / box_area) >= 0.6 and abs(abs(orientation) - 90) <= 25
+    message = ''
+    if rice_area < thres_area:
+        message += 'too small, '
+    if (rice_area / box_area) < 0.6:
+        message += f"too loose: {(rice_area / box_area)}, "
+    if abs(abs(orientation) - 90) > 25:
+        message += f"orientation wrong: {orientation}."
+    rice['message'] = message
     
     return rice_mask, rice 
 
@@ -176,7 +189,7 @@ def DetectCucumber(bgrimg: np.ndarray):
     cv.drawContours(cucumber_mask, [box], -1,color = (255,255,255),thickness = 2)
 
     cucumber = dict()
-    cucumber['center'] = np.array([cx, cy])
+    cucumber['center'] = (cx, cy)
     cucumber['orientation'] = orientation
     
     return cucumber_mask, cucumber 
@@ -223,7 +236,6 @@ def DetectSalmon(bgrimg: np.ndarray):
         salmon['orientation'] = orientation
         salmons.append(salmon)
     empty[:, 350:720] = salmon_mask
-    
     return empty, salmons
 
 def DetectRiceRoll(bgrimg: np.ndarray):

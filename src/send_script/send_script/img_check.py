@@ -18,16 +18,18 @@ def findSalmon(img: np.ndarray) -> tuple:
         return False, (0, 0)
     displacement = Salmons[0]['edge_mid']/sashimi_calib_scale - sashimi_gripper_pos
     print(f"found {len(Salmons)}")
+    print(f"salmon center displacement {Salmons[0]['center']/sashimi_calib_scale - sashimi_gripper_pos}")
     print(f"gripper should move {displacement}")
     return True, displacement
 
 def isRiceballOK(img) -> tuple:
     _, Rice = DetectRice(img)
-    displacement = Rice['center']/tekamaki_calib_scale - tekamaki_gripper_pos
+    displacement = Rice['edge_mid']/tekamaki_calib_scale - tekamaki_gripper_pos
     print(f"gripper should move {displacement}")
     if Rice['valid']:
         return True, displacement
     else:
+        print(Rice['message'])
         return False, displacement
 
 def findCucumber(img) -> tuple:
