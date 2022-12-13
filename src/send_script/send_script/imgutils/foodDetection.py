@@ -182,32 +182,33 @@ def DetectCucumber(bgrimg: np.ndarray):
     return cucumber_mask, cucumber 
 
 def DetectSalmon(bgrimg: np.ndarray):
-    crop = np.array([400, 0])
-    bgrimg = bgrimg[:, 400:]
+    empty = np.zeros((bgrimg.shape[0], bgrimg.shape[1]))
+    crop = np.array([350, 0])
+    bgrimg = bgrimg[:, 350:720]
 
     hsvimg = cv.cvtColor(bgrimg, cv.COLOR_BGR2HSV)
-    hsvimg = cv.GaussianBlur(hsvimg, (51, 51), 0)
+    # hsvimg = cv.GaussianBlur(hsvimg, (51, 51), 0)
 
-    lower_bound = np.array([ 30, 10, 140])
-    upper_bound = np.array([ 75, 30, 220])
+    lower_bound = np.array([  3,  50, 107])
+    upper_bound = np.array([ 15, 155, 215])
 
     [h, w] = hsvimg.shape[:-1]
     salmon_mask = np.zeros([h, w])
     check_range = hsvimg
     mask = cv.inRange(check_range, lower_bound, upper_bound)
-    kernel = np.ones((5,5), np.uint8)
-    mask = cv.erode(mask, kernel, iterations = 1)
-    mask = cv.dilate(mask, kernel, iterations = 2)
+    # kernel = np.ones((5,5), np.uint8)
+    # mask = cv.erode(mask, kernel, iterations = 1)
+    # mask = cv.dilate(mask, kernel, iterations = 2)
 
     contours, _ = cv.findContours(image=mask.astype(np.uint8), mode=cv.RETR_LIST, method=cv.CHAIN_APPROX_NONE)
     valid_cnt = []
     for cnt in contours:
-        if cv.contourArea(cnt) >= 15000:
+        if cv.contourArea(cnt) >= 10000:
             valid_cnt.append(cnt)
     cv.drawContours(image = salmon_mask, contours = valid_cnt, contourIdx = -1, color = (255, 255, 255), thickness = cv.FILLED)
     salmons = []
     for cnt in valid_cnt:
-        mid_point = Findedge(cnt)
+        mid_point, _ = Findedge(cnt)
         M = cv.moments(cnt)
         cx = int(M['m10']/M['m00'])
         cy = int(M['m01']/M['m00'])
@@ -221,8 +222,8 @@ def DetectSalmon(bgrimg: np.ndarray):
         salmon['edge_mid'] = mid_point + crop
         salmon['orientation'] = orientation
         salmons.append(salmon)
-    
-    return salmon_mask, salmons
+    empty[:, 350:720] = salmon_mask
+    return empty, salmons
 
 def DetectRiceRoll(bgrimg: np.ndarray):
     
