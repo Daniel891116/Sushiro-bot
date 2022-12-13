@@ -5,6 +5,12 @@ import os
 import math
 import matplotlib.pyplot as plt
 
+sashimi_gripper_pos  = np.array([169, 205])
+tekamaki_gripper_pos = np.array([153, 193])
+
+sashimi_calib_scale = 3.89
+tekamaki_calib_scale = 4.30
+
 def Findedge(counter):
     # sobel_x = np.array\
     # (
@@ -282,7 +288,7 @@ def main():
         salmon_map, salmons = DetectSalmon(bgrimg)
         # riceroll_map, riceroll = DetectRiceRoll(bgrimg)
         
-        ax1 = fig1.add_subplot(1, 1, i+1)
+        ax1 = fig1.add_subplot(2, 1, i+1)
         hsvimg = cv.cvtColor(bgrimg, cv.COLOR_BGR2HSV)
         ax1.imshow(hsvimg)
 
@@ -292,11 +298,13 @@ def main():
         # ax3.imshow(riceroll_map, cmap = 'gray')
 
         # Detect Salmon
-        ax3 = fig3.add_subplot(1, 1, i+1)
+        ax3 = fig3.add_subplot(2, 1, i+1)
         ax3.set_title(f"found {len(salmons)}", fontsize=10)
-        print(salmon_map.shape)
         ax3.imshow(salmon_map, cmap = 'gray')
         for salmon in salmons:
+            print(salmon['edge_mid'])
+            print(f"gripper should move {salmon['edge_mid']/sashimi_calib_scale - sashimi_gripper_pos}")
+            print(f"gripper should move {salmon['center']/sashimi_calib_scale - sashimi_gripper_pos}")
             ax3.scatter(int(salmon['center'][0]), int(salmon['center'][1]), color = 'r', s = 5)
             ax3.scatter(int(salmon['edge_mid'][0]), int(salmon['edge_mid'][1]), color = 'g', s = 5)
 
