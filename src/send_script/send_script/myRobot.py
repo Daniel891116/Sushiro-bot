@@ -324,32 +324,32 @@ class myRobot(Node):
 			self.currentPose.y += (-dx/sqrt(2) +dy/sqrt(2) -salmonBias/sqrt(2))
 			self.currentPose.z = salmonHeight
 			self.moveToPose(self.currentPose)
-			self.gripper("close")
-			self.moveToZ(250)
+			# self.gripper("close")
+			# self.moveToZ(250)
 			# self.count += 1
 
-			# find rice
-			self.moveToPose(ricePhotoPose)
-			result = isRiceballOK(self.imageCapture(f"riceTest_{self.count}.png"))
-			self.MCU.platformHalf()
-			dx, dy = result[1]
-			pose = deepcopy(self.currentPose)
-			pose.x += (-dx/sqrt(2) -dy/sqrt(2))
-			pose.y += (-dx/sqrt(2) +dy/sqrt(2))
-			pose.z = 230
-			pose.rz = 135
-			self.moveToPose(pose)
-			pose.x -= 35*2.5
-			pose.y += 35*2.5
-			pose.z -= 50
-			pose.ry = 30
-			self.moveToPose(pose)
-			self.gripper("open")
+			# # find rice
+			# self.moveToPose(ricePhotoPose)
+			# result = isRiceballOK(self.imageCapture(f"riceTest_{self.count}.png"))
+			# self.MCU.platformHalf()
+			# dx, dy = result[1]
+			# pose = deepcopy(self.currentPose)
+			# pose.x += (-dx/sqrt(2) -dy/sqrt(2))
+			# pose.y += (-dx/sqrt(2) +dy/sqrt(2))
+			# pose.z = 230
+			# pose.rz = 135
+			# self.moveToPose(pose)
+			# pose.x -= 35*2.5
+			# pose.y += 35*2.5
+			# pose.z -= 50
+			# pose.ry = 30
+			# self.moveToPose(pose)
+			# self.gripper("open")
 
-			self.moveToPose(readyPose)
-			sleep(3)
-			self.MCU.nigiriRoll()
-			# dedicate
+			# self.moveToPose(readyPose)
+			# sleep(3)
+			# self.MCU.nigiriRoll()
+			# # dedicate
 		else:
 			print("[Error] Cannot find salmon !!! Continue...")
 
