@@ -33,18 +33,18 @@ class myRobot(Node):
 		self.gripper_node = rclpy.create_node('gripper')
 		self.gripper_cli = self.gripper_node.create_client(SetIO, 'set_io')
 
+		self.bridge = CvBridge()
+		self.img = None
+		self.riceManager = riceManager()
+		self.seaweedManager = seaweedManager()
+		self.MCU = MCU("/dev/ttyUSB0")
+
 		self.moveToPose(readyPose)
 		self.platformState = "out" # assumed outside
 		# 0: out, 1: in
 		self.movePlatform("in")
 		self.moveToPose(readyPose)
 		self.gripper("open")
-
-		self.bridge = CvBridge()
-		self.img = None
-		self.riceManager = riceManager()
-		self.seaweedManager = seaweedManager()
-		self.MCU = MCU("/dev/ttyUSB0")
 
 		# start sushi service
 		self.callbackEvent = Event()
@@ -218,6 +218,7 @@ class myRobot(Node):
 		self.moveToPose(self.currentPose, speed)
 
 	def movePlatform(self, cmd):
+		# in, out
 		if self.platformState.casefold() != cmd.casefold():
 			if self.platformState.casefold() == "in":
 				# now inside, move outside
@@ -227,14 +228,18 @@ class myRobot(Node):
 				self.moveToPose(platformIn2OutPose)
 				self.moveToPose(platformBackInPose)
 				self.moveToZ(250)
-			else:
+			elif self.platformState.casefold() == "out":
 				# now outside, move inside
 				self.gripper("close")
 				self.moveToPose(platformOutPose("up"))
 				self.moveToPose(platformOutPose("down"))
 				self.moveToPose(platformOut2InPose)
 				self.moveToZ(250)
+			else:
+				print("[Error] Unknown platform command !!!")
+				return
 		self.platformState = cmd
+		self.MCU.setPlatformState(cmd)
 
 	def getRice(self, target = "rice"):
 		self.movePlatform("out")
@@ -265,6 +270,8 @@ class myRobot(Node):
 		# check rice
 		while True:
 			self.moveToPose(ricePhotoPose)
+			self.movePlatform("out")
+			self.MCU.nigiriRoll()
 			result = isRiceballOK(self.imageCapture(f"riceTest_{self.count}.png"))
 			self.count += 1
 			if result[0]:
@@ -272,6 +279,7 @@ class myRobot(Node):
 				break
 			else:
 				# form by MCU
+				self.movePlatform("out")
 				self.MCU.nigiriRoll()
 				# form by gripper
 				dx, dy = result[1]
@@ -347,7 +355,108 @@ class myRobot(Node):
 
 	def delicateSalmon(self):
 		pass
-			
+
+	def nigiri(self):
+		self.moveToPose(readyPose)
+		self.movePlatform("out")
+
+		# water
+		self.moveToPose(waterBowlPose("up"))
+		self.moveToPose(waterBowlPose("down"))
+		self.block()
+		self.gripper("open")
+		self.gripper("shake", shake_time = 0.2)
+		self.moveToPose(waterBowlPose("shake"))
+		self.gripper("shake", shake_time = 0.1)
+
+		# target: rice
+		self.moveToPose(riceBowlPose("up"))
+		self.gripper("open")
+		self.moveToPose(self.riceManager.consult(target))
+		self.gripper("close")
+		self.block()
+		self.moveToZ(250)
+		self.moveToPose(riceStandardPose("up"))
+		self.moveToPose(riceStandardPose("down"))
+		self.block()
+		self.gripper("open")
+		self.block()
+		self.gripper("shake", shake_time = 0.1)
+		self.moveToZ(250)
+		self.movePlatform("out")
+		self.MCU.nigiriRoll()
+
+		# check rice
+		while True:
+			self.moveToPose(ricePhotoPose)
+			result = isRiceballOK(self.imageCapture(f"riceTest_{self.count}.png"))
+			self.count += 1
+			if result[0]:
+				print("Nice rice, next step")
+				break
+			else:
+				# form by MCU
+				self.movePlatform("out")
+				self.MCU.nigiriRoll()
+				# form by gripper
+				dx, dy = result[1]
+				currentRiceFormPose = deepcopy(riceFormPose(self.currentPose.x, self.currentPose.y, "up"))
+				currentRiceFormPose.x += (-dx/sqrt(2) -dy/sqrt(2) -riceBias -gripperBias/sqrt(2))
+				currentRiceFormPose.y += (-dx/sqrt(2) +dy/sqrt(2) -riceBias +gripperBias/sqrt(2))
+				self.gripper("open")
+				self.moveToPose(currentRiceFormPose)
+				self.moveToPose(riceFormPose(currentRiceFormPose.x, currentRiceFormPose.y, "down"))
+				self.gripper("close")
+				self.block()
+				self.gripper("open")
+				self.moveToZ(250)
+
+		# salmon
+		self.moveToPose(salmonPhotoPose)
+		result = findSalmon(self.imageCapture())
+		if result[0]:
+			self.gripper("open")
+			dx, dy = result[1]
+			self.currentPose.x += (-dx/sqrt(2) -dy/sqrt(2) -salmonBias/sqrt(2))
+			self.currentPose.y += (-dx/sqrt(2) +dy/sqrt(2) -salmonBias/sqrt(2))
+			self.currentPose.z = salmonHeight
+			self.moveToPose(self.currentPose)
+			self.gripper("close")
+			self.moveToZ(250)
+
+			# find rice
+			self.moveToPose(ricePhotoPose)
+			result = isRiceballOK(self.imageCapture(f"riceTest_{self.count}.png"))
+			self.MCU.platformHalf()
+			dx, dy = result[1]
+			pose = deepcopy(self.currentPose)
+			pose.x += (-dx/sqrt(2) -dy/sqrt(2))
+			pose.y += (-dx/sqrt(2) +dy/sqrt(2))
+			pose.z = 230
+			pose.rz = 135
+			self.moveToPose(pose)
+			pose.x -= 35*2.5
+			pose.y += 35*2.5
+			pose.z -= 50
+			pose.ry = 30
+			self.moveToPose(pose)
+			self.gripper("open")
+
+			self.moveToPose(readyPose)
+			sleep(3)
+			self.MCU.nigiriRoll()
+			# form again
+			self.gripper("open")
+			self.moveToPose(currentRiceFormPose)
+			self.moveToPose(riceFormPose(currentRiceFormPose.x, currentRiceFormPose.y, "down"))
+			self.gripper("close")
+			self.block()
+			self.gripper("open")
+			self.moveToZ(250)
+			# delicate?
+		else:
+			print("[Error] Cannot find salmon !!! Continue...")
+
 	# command service
 	def startCommandService(self):
 		self.block()
@@ -438,6 +547,14 @@ class myRobot(Node):
 			elif command[0] == 'm':
 				if command[1] == 'n':
 					self.MCU.nigiriRoll()
+			elif command[0] == '0':
+				print("Order mode")
+				order = self.MCU.getOrder()
+				print("Order: " + order)
+				if order.casefold() == "nigiri":
+					self.nigiri()
+				else:
+					print("Not yet")
 			elif command[0] == '0':
 				self.moveToPose(readyPose)
 			elif command[0] == '?':

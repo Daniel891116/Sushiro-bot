@@ -24,36 +24,47 @@ class MCU():
 			print("=" * 32)
 			raise e
 
+		self.platformState = None
+
 	def __del__(self):
 		self.ser.close()
 
-	def getOrder(self):
-		while True:
-			if self.ser.in_waiting():
-				data = self.ser.readline().decode().strip()
-				if data.casefold() == "nigiri".casefold():
-					return 0
-				elif data.casefold() == "tekkamaki".casefold():
-					return 1
+	def setPlatformState(self, cmd):
+		self.platformState = cmd
 
 	def platformAuto(self):
 		self.ser.write(b'1')
 
-	def platformManual(self):
+	def getOrder(self):
 		self.ser.write(b'2')
-
-	def platformDegree(self, inn, mid, out):
-		self.ser.write(f'{inn}_{mid}_{out}')
+		while True:
+			if self.ser.in_waiting():
+				data = self.ser.readline().decode().strip()
+				if data.casefold() == "nigiri".casefold():
+					return "nigiri"
+				elif data.casefold() == "tekkamaki".casefold():
+					return "tekkamaki"
 
 	def nigiriRoll(self):
+		# platform should be inside
+		if self.platformState != "out":
+			print("[Warning] platform should be outside while nigiriRoll !!!")
+			return False
 		self.ser.write(b'3')
 		sleep(10)
+		return True
 
 	def tekkaRoll(self, mode):
+		if self.platformState.casefold() != mode.casefold():
+			print("[Error] platform state inconsistent with the tekka roll mode !!!")
+			return False
+
 		if mode.casefold() == "in".casefold():
 			self.ser.write(b'4')
+			sleep(1)
 		else:
 			self.ser.write(b'5')
+			sleep(1)
 
 	def platformHalf(self):
 		self.ser.write(b'6')
@@ -61,15 +72,4 @@ class MCU():
 
 	def platformFlat(self):
 		self.ser.write(b'0')
-
-# auto
-# roll
-# half
-# reset
-
-# manual
-# 10 10 10
-# 170 170 170
-
-# nigiri
-# tekkamaki
+		sleep(5)
