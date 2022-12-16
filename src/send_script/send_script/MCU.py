@@ -44,6 +44,10 @@ class MCU():
 					return "nigiri"
 				elif data.casefold() == "tekka".casefold():
 					return "tekkamaki"
+				elif data.casefold() == "order mode".casefold():
+					print("Enter order mode confirmed.")
+				elif data.casefold() == "".casefold():
+					continue
 				else:
 					print("[Warning] Unknown MCU message: \"" + data + "\", skipping")
 

@@ -48,7 +48,7 @@ class myRobot(Node):
 
 		# start sushi service
 		self.callbackEvent = Event()
-		inputThread = Thread(target = self.startCommandService)
+		inputThread = Thread(target = self.startSushiService)
 		inputThread.start()
 
 		# temp
@@ -118,27 +118,6 @@ class myRobot(Node):
 		io_cmd.pin = pin
 		io_cmd.state = state
 		self.gripper_cli.call_async(io_cmd)
-		# self.gripper_node.destroy_node()
-
-	def try_pwm(self, first_time = 0.3, interval = 0.055):
-		# self.gripper_node = rclpy.create_node('gripper')
-		# self.gripper_cli = self.gripper_node.create_client(SetIO, 'set_io')
-
-		while not self.gripper_cli.wait_for_service(timeout_sec = 1.0):
-			self.gripper_node.get_logger().info('Gripper service not availabe, waiting again...')
-
-		io_cmd = SetIO.Request()
-		io_cmd.module = 1
-		io_cmd.type = 2 # instant do
-		io_cmd.pin = 0
-		io_cmd.state = 1.0
-
-		self.gripper_cli.call_async(io_cmd)
-		sleep(first_time)
-		for _ in range(301): # always odd pls
-			io_cmd.state = 1.0 - io_cmd.state
-			self.gripper_cli.call_async(io_cmd)
-			sleep(interval)
 		# self.gripper_node.destroy_node()
 
 	# move
@@ -239,120 +218,6 @@ class myRobot(Node):
 		self.platformState = cmd
 		self.MCU.setPlatformState(cmd)
 
-	def getRice(self, target = "rice"):
-		self.movePlatform("out")
-		self.moveToPose(waterBowlPose("up"))
-		self.moveToPose(waterBowlPose("down"))
-		self.block()
-		self.gripper("open")
-		self.gripper("shake", shake_time = 0.2)
-		self.moveToPose(waterBowlPose("shake"))
-		self.gripper("shake", shake_time = 0.1)
-
-		# target: roll / rice
-		self.moveToPose(riceBowlPose("up"))
-		self.gripper("open")
-		self.moveToPose(self.riceManager.consult(target))
-		self.gripper("close")
-		sleep(1)
-		self.block()
-		self.moveToZ(250)
-		self.moveToPose(rollRiceStandardPose("up") if target.casefold() == "roll".casefold() else riceStandardPose("up"))
-		self.moveToPose(rollRiceStandardPose("down") if target.casefold() == "roll".casefold() else riceStandardPose("down"))
-		self.block()
-		self.gripper("open")
-		self.block()
-		self.gripper("shake", shake_time = 0.1)
-		self.moveToZ(250)
-
-		# check rice
-		while True:
-			self.moveToPose(ricePhotoPose)
-			self.movePlatform("out")
-			self.MCU.nigiriRoll()
-			result = isRiceballOK(self.imageCapture(f"riceTest_{self.count}.png"))
-			self.count += 1
-			if result[0]:
-				print("Nice rice, next step")
-				break
-			else:
-				# form by MCU
-				self.movePlatform("out")
-				self.MCU.nigiriRoll()
-				# form by gripper
-				dx, dy = result[1]
-				pose = deepcopy(riceFormPose(self.currentPose.x, self.currentPose.y, "up"))
-				pose.x += (-dx/sqrt(2) -dy/sqrt(2) -riceBias -gripperBias/sqrt(2))
-				pose.y += (-dx/sqrt(2) +dy/sqrt(2) -riceBias +gripperBias/sqrt(2))
-				self.gripper("open")
-				self.moveToPose(pose)
-				self.moveToPose(riceFormPose(pose.x, pose.y, "down"))
-				self.gripper("close")
-				self.block()
-				self.gripper("open")
-				self.moveToZ(250)
-
-	def getCucumber(self):
-		self.moveToPose(cucumberPhotoPose)
-		result = findCucumber(self.imageCapture())
-		if result[0]:
-			self.gripper("open")
-			dx, dy = result[1]
-			self.currentPose.x += (-dx/sqrt(2) -dy/sqrt(2))
-			self.currentPose.y += (-dx/sqrt(2) +dy/sqrt(2))
-			self.currentPose.z = cucumberHeight
-			self.moveToPose(self.currentPose)
-			self.gripper("close")
-			self.moveToZ(250)
-			self.moveToPose(cucumberStandardPose("up"))
-			self.moveToPose(cucumberStandardPose("down"))
-			self.block()
-			self.gripper("open")
-			self.moveToZ(250)
-			self.block()
-			self.MCU.tekkaRoll("in")
-		else:
-			print("[Error] Cannot find cucumbers !!! Continue...")
-
-	def getSalmon(self):
-		self.moveToPose(salmonPhotoPose)
-		result = findSalmon(self.imageCapture()) # f"salmonTest_{self.count}.png"
-		if result[0]:
-			self.gripper("open")
-			dx, dy = result[1]
-			self.currentPose.x += (-dx/sqrt(2) -dy/sqrt(2) -salmonBias/sqrt(2))
-			self.currentPose.y += (-dx/sqrt(2) +dy/sqrt(2) -salmonBias/sqrt(2))
-			self.currentPose.z = salmonHeight
-			self.moveToPose(self.currentPose)
-			# self.gripper("close")
-			# self.moveToZ(250)
-			# self.count += 1
-
-			# # find rice
-			# self.moveToPose(ricePhotoPose)
-			# result = isRiceballOK(self.imageCapture(f"riceTest_{self.count}.png"))
-			# self.MCU.platformHalf()
-			# dx, dy = result[1]
-			# pose = deepcopy(self.currentPose)
-			# pose.x += (-dx/sqrt(2) -dy/sqrt(2))
-			# pose.y += (-dx/sqrt(2) +dy/sqrt(2))
-			# pose.z = 230
-			# pose.rz = 135
-			# self.moveToPose(pose)
-			# pose.x -= 35*2.5
-			# pose.y += 35*2.5
-			# pose.z -= 50
-			# pose.ry = 30
-			# self.moveToPose(pose)
-			# self.gripper("open")
-
-			# self.moveToPose(readyPose)
-			# sleep(3)
-			# self.MCU.nigiriRoll()
-			# # dedicate
-		else:
-			print("[Error] Cannot find salmon !!! Continue...")
-
 	def nigiri(self):
 		self.moveToPose(readyPose)
 		self.movePlatform("out")
@@ -385,7 +250,6 @@ class myRobot(Node):
 		self.MCU.nigiriRoll()
 
 		# check rice
-		result = None
 		while True:
 			self.moveToPose(ricePhotoPose)
 			result = isRiceballOK(self.imageCapture())
@@ -447,21 +311,6 @@ class myRobot(Node):
 
 			self.moveToPose(readyPose)
 
-			# self.moveToPose(ricePhotoPose)
-			# self.block()
-			# self.MCU.nigiriRoll()
-			# # form again
-			# self.gripper("open")
-			# currentRiceFormPose = deepcopy(riceFormPose(self.currentPose.x, self.currentPose.y, "up"))
-			# currentRiceFormPose.x += (-dx/sqrt(2) -dy/sqrt(2) -riceBias -gripperBias/sqrt(2))
-			# currentRiceFormPose.y += (-dx/sqrt(2) +dy/sqrt(2) -riceBias +gripperBias/sqrt(2))
-			# self.moveToPose(currentRiceFormPose)
-			# self.moveToPose(riceFormPose(currentRiceFormPose.x, currentRiceFormPose.y, "down"))
-			# self.gripper("close")
-			# self.block()
-			# self.gripper("open")
-			# self.moveToZ(250)
-			# delicate?
 		else:
 			print("[Error] Cannot find salmon !!! Continue...")
 
@@ -590,150 +439,3 @@ class myRobot(Node):
 				self.nigiri()
 			elif order.casefold() == "tekkamaki":
 				self.tekkamaki()
-
-	# command service
-	def startCommandService(self):
-		self.block()
-		while True:
-			command = input("Command: ")
-			if command[0] == 'v':
-				print("Vision")
-				self.imageCapture(filename = f"visionTest_{count}.jpg")
-				count += 1
-			elif command[0] == 'g':
-				self.set_io(float(command[1]))
-			elif command[0] == 'w':
-				self.getRice()
-			elif command[0:2] == 'xy':
-				x = float(command.split()[1])
-				y = float(command.split()[2])
-				print(f"x: {x}")
-				print(f"y: {y}")
-				self.moveToXYZ(x = x, y = y)
-			elif command[0] == 'x':
-				x = float(command[2:])
-				print(f"x: {x}")
-				self.moveToX(x)
-			elif command[0] == 'y':
-				y = float(command[2:])
-				print(f"y: {y}")
-				self.moveToY(y)
-			elif command[0] == 'z':
-				z = float(command[2:])
-				print(f"z: {z}")
-				self.moveToZ(z)
-			elif command[0] == 'r':
-				if command[1] == 'x':
-					rx = float(command[3:])
-					print(f"rx: {rx}")
-					self.moveToRX(rx)
-				elif command[1] == 'y':
-					ry = float(command[3:])
-					print(f"ry: {ry}")
-					self.moveToRY(ry)
-				elif command[1] == 'z':
-					rz = float(command[3:])
-					print(f"rz: {rz}")
-					self.moveToRZ(rz)
-			elif command[0] == 'p':
-				if command[1] == 'r':
-					self.movePlatform("out")
-					self.moveToPose(ricePhotoPose)
-					result = isRiceballOK(self.imageCapture(f"riceTest_{self.count}.png"))
-					self.count += 1
-					if result[0]:
-						print("Nice rice, next step")
-					else:
-						dx, dy = result[1]
-						pose = deepcopy(riceFormPose(self.currentPose.x, self.currentPose.y, "up"))
-						pose.x += (-dx/sqrt(2) -dy/sqrt(2) -riceBias -gripperBias/sqrt(2))
-						pose.y += (-dx/sqrt(2) +dy/sqrt(2) -riceBias +gripperBias/sqrt(2))
-						self.gripper("open")
-						self.moveToPose(pose)
-						self.moveToPose(riceFormPose(pose.x, pose.y, "down"))
-						self.gripper("close")
-						self.block()
-						self.gripper("open")
-						self.moveToZ(250)
-				elif command[1] == 'l':
-					self.moveToPose(rollPhotoPose)
-					result = isMakkiRiceEnough(self.imageCapture(f"rollTest_{self.count}.png"))
-					self.count += 1
-					if result[0]:
-						print("Nice roll, next step")
-						break
-					else:
-						for destination in result[1]:
-							# pick up rice
-							# target: roll
-							self.moveToPose(riceBowlPose("up"))
-							self.gripper("open")
-							self.moveToPose(self.riceManager.consult("roll"))
-							self.gripper("close")
-							self.block()
-							self.moveToZ(250)
-
-							# fill up the hole
-							targetPost = deepcopy(ricePhotoPose)
-							targetPost.rz = 135
-							targetPost.x += (-destination/sqrt(2))
-							targetPost.y += ( destination/sqrt(2))
-							targetPost.z = 250
-							self.moveToPose(targetPost)
-							# self.moveToPose(rollRiceStandardPose(m, "down"))
-							self.moveToZ(200)
-							self.block()
-							self.gripper("open")
-							self.block()
-							self.gripper("shake", shake_freq = 0.15, shake_time = 6)
-							self.moveToZ(250)
-
-							# dip
-							self.moveToPose(waterBowlPose("up"))
-							self.moveToPose(waterBowlPose("down"))
-							self.moveToPose(waterBowlPose("shake"))
-							self.block()
-							self.gripper("shake", shake_freq = 0.1, shake_time = 7)
-							self.gripper("open")
-
-				elif command[1] == 'c':
-					self.getCucumber()
-				elif command[1] == 's':
-					self.getSalmon()
-				elif command[1] == 't':
-					if command[2] == 'i':
-						self.movePlatform("in")
-					else:
-						self.movePlatform("out")
-			elif command[0] == 'm':
-				if command[1] == 'n':
-					self.MCU.nigiriRoll()
-				elif command[1] == 't':
-					self.MCU.tekkaRoll(self.platformState)
-			elif command[0] == 'o':
-				print("Order mode")
-				order = self.MCU.getOrder()
-				print("Order: " + order)
-				if order.casefold() == "nigiri":
-					self.nigiri()
-				elif order.casefold() == "tekkamaki":
-					self.tekkamaki()
-			elif command[0] == '0':
-				self.moveToPose(readyPose)
-			elif command[0] == '?':
-				print(self.currentPose)
-			elif command[0] == 't':
-				# self.try_pwm(0.25, 0.06)
-				self.try_pwm(float(command.split()[1]), float(command.split()[2]))
-				# PWMThread = Thread(target = self.try_pwm)
-				# PWMThread.start()
-				# sleep(0.5)
-				# self.moveToZ(250)
-				# PWMThread.join()
-			elif command[0] == 'q':
-				# quit
-				break
-			else:
-				continue
-
-	# sushi service
