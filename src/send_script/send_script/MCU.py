@@ -38,12 +38,14 @@ class MCU():
 	def getOrder(self):
 		self.ser.write(b'2')
 		while True:
-			if self.ser.in_waiting():
+			if self.ser.in_waiting:
 				data = self.ser.readline().decode().strip()
 				if data.casefold() == "nigiri".casefold():
 					return "nigiri"
-				elif data.casefold() == "tekkamaki".casefold():
+				elif data.casefold() == "tekka".casefold():
 					return "tekkamaki"
+				else:
+					print("[Warning] Unknown MCU message: \"" + data + "\", skipping")
 
 	def nigiriRoll(self):
 		# platform should be inside
@@ -61,10 +63,10 @@ class MCU():
 
 		if mode.casefold() == "in".casefold():
 			self.ser.write(b'4')
-			sleep(1)
+			sleep(15)
 		else:
 			self.ser.write(b'5')
-			sleep(1)
+			sleep(15)
 
 	def platformHalf(self):
 		self.ser.write(b'6')
@@ -72,4 +74,4 @@ class MCU():
 
 	def platformFlat(self):
 		self.ser.write(b'0')
-		sleep(5)
+		sleep(3)

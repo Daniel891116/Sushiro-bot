@@ -94,7 +94,7 @@ def GradeRiceRoll(seaweed_mask: np.ndarray, box: list):
             if distribution[-1] != -1:
                 distribution.append(-1)
 
-        return distribution
+        return np.array(distribution)
 
     def ProcessDistribution(distribution: list) -> list:
         current = []
@@ -117,14 +117,14 @@ def GradeRiceRoll(seaweed_mask: np.ndarray, box: list):
 def DetectRice(bgrimg: np.ndarray):
     thres_area = 45000
     lower_bound = np.array([15,  10,  100])
-    upper_bound = np.array([60, 70, 255])
+    upper_bound = np.array([60, 40, 250])
 
     hsvimg = cv.cvtColor(bgrimg, cv.COLOR_BGR2HSV)
     [h, w] = hsvimg.shape[:-1]
     rice_mask = np.zeros([h, w])
-    check_range = hsvimg[:, 470:870]
+    check_range = hsvimg[:, 470:800]
     mask = cv.inRange(check_range, lower_bound, upper_bound)
-    rice_mask[:, 470:870] = mask
+    rice_mask[:, 470:800] = mask
     # kernel = np.ones((7,7), np.uint8)
     # rice_mask = cv.erode(rice_mask, kernel, iterations = 1)
     # rice_mask = cv.dilate(rice_mask, kernel, iterations = 2)
@@ -238,8 +238,8 @@ def DetectSalmon(bgrimg: np.ndarray):
 
 def DetectRiceRoll(bgrimg: np.ndarray):
     
-    crop = np.array([300, 150])
-    bgrimg = bgrimg[150:900, 300:1000]
+    crop = np.array([500, 150])
+    bgrimg = bgrimg[150:900, 500:1000]
     hsvimg = cv.cvtColor(bgrimg, cv.COLOR_BGR2HSV)
     hsvimg = cv.GaussianBlur(hsvimg, (21, 21), 0)
 
@@ -266,13 +266,13 @@ def DetectRiceRoll(bgrimg: np.ndarray):
     rice_mask, distribution = GradeRiceRoll(seaweed_mask, box)
     riceroll = dict()
     riceroll['box'] = box
-    riceroll['empty_pos'] = distribution
+    riceroll['empty_pos'] = distribution+crop
 
     return rice_mask, riceroll
 
 def main():
 
-    img_dir = "rice"
+    img_dir = "riceroll"
 
     filenames = sorted(glob.glob(os.path.join(os.getcwd(), img_dir, "*.png")))
     print(len(filenames))
@@ -284,19 +284,19 @@ def main():
         bgrimg = cv.imread(filename)
         
         rgbimg = cv.cvtColor(bgrimg, cv.COLOR_BGR2RGB)
-        rice_map, rice = DetectRice(bgrimg)
+        # rice_map, rice = DetectRice(bgrimg)
         # cucumber_map, cucumber = DetectCucumber(bgrimg)
         # salmon_map, salmons = DetectSalmon(bgrimg)
-        # riceroll_map, riceroll = DetectRiceRoll(bgrimg)
+        riceroll_map, riceroll = DetectRiceRoll(bgrimg)
         
-        ax1 = fig1.add_subplot(3, 2, i+1)
+        ax1 = fig1.add_subplot(1, 2, i+1)
         hsvimg = cv.cvtColor(bgrimg, cv.COLOR_BGR2HSV)
         ax1.imshow(hsvimg)
 
         # Detect RiceRoll
-        # ax3 = fig3.add_subplot(2, 5, i+1)
-        # ax3.set_title(f"", fontsize = 10)
-        # ax3.imshow(riceroll_map, cmap = 'gray')
+        ax3 = fig3.add_subplot(1, 2, i+1)
+        ax3.set_title(f"", fontsize = 10)
+        ax3.imshow(riceroll_map, cmap = 'gray')
 
         # Detect Salmon
         # ax3 = fig3.add_subplot(2, 1, i+1)
@@ -315,16 +315,16 @@ def main():
         # ax3.imshow(cucumber_map, cmap = 'gray')
 
         # Detect Rice
-        ax3 = fig3.add_subplot(3, 2 , i+1)
-        ax3.imshow(rice_map, cmap = 'gray')
-        ax3.set_title(f"{rice['area_rate']*100:.1f}%, {rice['orientation']:.1f}°, {rice['valid']}", fontsize=10)
-        ax3.scatter(int(rice['center'][0]), int(rice['center'][1]), color = 'r', s = 0.5)
-        ax3.scatter(int(rice['edge_mid'][0]), int(rice['edge_mid'][1]), color = 'g', s = 1)
-        slope = math.tan(rice['orientation'] * math.pi / 180)
-        (cx, cy) = rice['center']
-        L_point = (0, -cx * slope + cy)
-        R_point = (hsvimg.shape[1], (hsvimg.shape[1] - cx) * slope + cy)
-        ax3.plot((L_point[0], R_point[0]), (L_point[1], R_point[1]), color = 'b', linewidth = 1)
+        # ax3 = fig3.add_subplot(3, 2 , i+1)
+        # ax3.imshow(rice_map, cmap = 'gray')
+        # ax3.set_title(f"{rice['area_rate']*100:.1f}%, {rice['orientation']:.1f}°, {rice['valid']}", fontsize=10)
+        # ax3.scatter(int(rice['center'][0]), int(rice['center'][1]), color = 'r', s = 0.5)
+        # ax3.scatter(int(rice['edge_mid'][0]), int(rice['edge_mid'][1]), color = 'g', s = 1)
+        # slope = math.tan(rice['orientation'] * math.pi / 180)
+        # (cx, cy) = rice['center']
+        # L_point = (0, -cx * slope + cy)
+        # R_point = (hsvimg.shape[1], (hsvimg.shape[1] - cx) * slope + cy)
+        # ax3.plot((L_point[0], R_point[0]), (L_point[1], R_point[1]), color = 'b', linewidth = 1)
 
         plt.xlim([0, rgbimg.shape[1]])
         plt.ylim([rgbimg.shape[0], 0])

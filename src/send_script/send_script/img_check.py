@@ -41,12 +41,12 @@ def findCucumber(img) -> tuple:
     else:
         return False, (0, 0)
 
-def isMakkiRiceEnough(img) -> bool:
+def isMakkiRiceEnough(img) -> tuple:
     img, RiceRoll = DetectRiceRoll(img)
     if len(RiceRoll['empty_pos']) == 0:
         return True, []
     else:
-        displacement = RiceRoll['empty_pos']/tekamaki_calib_scale - tekamaki_gripper_pos
+        displacement = RiceRoll['empty_pos']/tekamaki_calib_scale - tekamaki_gripper_pos[1]
         return False, displacement
 
 def isMakkiTuffingOK(img) -> bool:

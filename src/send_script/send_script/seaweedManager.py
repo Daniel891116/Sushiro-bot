@@ -7,6 +7,11 @@ seaweedReadyHeight = 250
 seaweedDownHeight = 225
 seaweedHighHeight = 300
 
+seaweedReadyToFlatPose = Pose(370, 370, 270, -180, 0, 45)
+seaweedFlatPose = Pose(490, 490, 160, -180, 30, 45)
+seaweedReadyToPushPose = Pose(500, 480, 175, -180, 0, 45)
+seaweedPushPose = Pose(452, 432, 170, -180, 0, 45)
+
 class seaweedManager():
     def __init__(self):
         # riceStandardPose
@@ -26,7 +31,7 @@ class seaweedManager():
         PoseDown = deepcopy(self.seaweed[-1])
         self.seaweed[-1].z = seaweedHighHeight
         PoseHigh = deepcopy(self.seaweed[-1])
-        Poses = [PoseReady, PoseDown, PoseHigh]
+        Poses = ["open", PoseReady, PoseDown, "close", PoseHigh, seaweedReadyToFlatPose, seaweedFlatPose, "open", seaweedReadyToPushPose, "close", seaweedPushPose]
         self.seaweed.pop()
 
         return Poses

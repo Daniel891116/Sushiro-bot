@@ -94,23 +94,26 @@ riceBias = 35
 gripperBias = 25
 
 rollPhotoPose = Pose(360, 460, 400, -180, 0, 45)
-rollRiceStandardPose = lambda place: Pose(410, 410, 200 if place.casefold() == "down".casefold() else 250, -180, 0, 135)
-cucumberStandardPose = lambda place: Pose(410, 410, 200 if place.casefold() == "down".casefold() else 250, -180, 0, 45)
+rollRiceGap = 20
+rollRiceStandardPose = lambda m, place: Pose(410 - m * rollRiceGap, 410 + m * rollRiceGap, 200 if place.casefold() == "down".casefold() else 250, -180, 0, 135)
+rollRiceMovedPose = lambda place: Pose(380, 380, 180 if place.casefold() == "down".casefold() else 250, -180, 0, 45)
 
+cucumberStandardPose = lambda place: Pose(410, 410, 200 if place.casefold() == "down".casefold() else 250, -180, 0, 45)
 cucumberPhotoPose = Pose(410, 160, 400, -180, 0, 45)
 cucumberHeight = 140 + 1
 
 salmonPhotoPose = Pose(350, 100, 400, -180, 0, 45)
-salmonHeight = 140 + 3.5 # tune larger if collision
+salmonHeight = 140 + 7.5 # tune larger if collision
 salmonBias = 5 # 10 # 15
 # salmonLength = 
 
-riceBowlPose = lambda place: Pose(285/sqrt(2) - 250/sqrt(2), 285/sqrt(2) + 250/sqrt(2), 160 if place.casefold() == "down".casefold() else 250, -180, 0, 45)
+# riceBowlPose = lambda place: Pose(285/sqrt(2) - 250/sqrt(2), 285/sqrt(2) + 250/sqrt(2), 160 if place.casefold() == "down".casefold() else 250, -180, 0, 45)
+riceBowlPose = lambda place: Pose(285/sqrt(2) - 250/sqrt(2), 285/sqrt(2) + 250/sqrt(2), 141 if place.casefold() == "down".casefold() else 250, -180, 0, 45) # temp
 # plate, 180 for bowl
 riceLowest = 135
 riceSize = 50
-riceDecay = 10
-riceHeight = lambda target: 5 if target.casefold() == "roll".casefold() else 10
+riceDecay = 0 #10
+riceHeight = lambda target: 3 if target.casefold() == "roll".casefold() else 10
 waterBowlPose = lambda place: Pose(475/sqrt(2) - 240/sqrt(2), 475/sqrt(2) + 240/sqrt(2), 140 if place.casefold() == "down".casefold() else 250, 
 	-165 if place.casefold() == "shake".casefold() else -180, 15 if place.casefold() == "shake".casefold() else 0, 45)
 

@@ -111,14 +111,14 @@ def GradeRiceRoll(seaweed_mask: np.ndarray, box: list):
 def DetectRice(bgrimg: np.ndarray):
     thres_area = 10000
     lower_bound = np.array([15,  10,  100])
-    upper_bound = np.array([60, 70, 255])
+    upper_bound = np.array([60, 40, 250])
 
     hsvimg = cv.cvtColor(bgrimg, cv.COLOR_BGR2HSV)
     [h, w] = hsvimg.shape[:-1]
     rice_mask = np.zeros([h, w])
-    check_range = hsvimg[:, 470:870]
+    check_range = hsvimg[:, 470:800]
     mask = cv.inRange(check_range, lower_bound, upper_bound)
-    rice_mask[:, 470:870] = mask
+    rice_mask[:, 470:800] = mask
     # kernel = np.ones((7,7), np.uint8)
     # rice_mask = cv.erode(rice_mask, kernel, iterations = 1)
     # rice_mask = cv.dilate(rice_mask, kernel, iterations = 2)
@@ -179,6 +179,7 @@ def DetectCucumber(bgrimg: np.ndarray):
     M = cv.moments(max_cnt)
     cx = int(M['m10']/M['m00'])
     cy = int(M['m01']/M['m00'])
+    center = np.array((cx, cy))
 
     phi = 0.5 * math.atan2(2 * M['nu11'], M['nu20'] - M['nu02'])
     orientation = phi * 180 / math.pi
@@ -189,7 +190,7 @@ def DetectCucumber(bgrimg: np.ndarray):
     cv.drawContours(cucumber_mask, [box], -1,color = (255,255,255),thickness = 2)
 
     cucumber = dict()
-    cucumber['center'] = (cx, cy)
+    cucumber['center'] = center
     cucumber['orientation'] = orientation
     
     return cucumber_mask, cucumber 
@@ -240,8 +241,8 @@ def DetectSalmon(bgrimg: np.ndarray):
 
 def DetectRiceRoll(bgrimg: np.ndarray):
     
-    crop = np.array([300, 150])
-    bgrimg = bgrimg[150:900, 300:1000]
+    crop = np.array([500, 150])
+    bgrimg = bgrimg[150:900, 500:1000]
     hsvimg = cv.cvtColor(bgrimg, cv.COLOR_BGR2HSV)
     hsvimg = cv.GaussianBlur(hsvimg, (21, 21), 0)
 
@@ -266,9 +267,10 @@ def DetectRiceRoll(bgrimg: np.ndarray):
     cv.drawContours(seaweed_mask, outcontours, -1, color = (255, 255, 255), thickness = cv.FILLED)
     box = GetOuterBox(seaweed_mask)
     rice_mask, distribution = GradeRiceRoll(seaweed_mask, box)
+    
     riceroll = dict()
     riceroll['box'] = box
-    riceroll['empty_pos'] = distribution
+    riceroll['empty_pos'] = distribution + crop[1]
 
     return rice_mask, riceroll
 
