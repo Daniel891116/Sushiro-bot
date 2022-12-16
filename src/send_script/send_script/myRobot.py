@@ -133,8 +133,6 @@ class myRobot(Node):
 		io_cmd.pin = pin
 		io_cmd.state = 1.0
 
-		self.moveAddZ(-100)
-		self.moveAddZ(100)
 		self.gripper_cli.call_async(io_cmd)
 		sleep(0.1)
 		for _ in range(200):
