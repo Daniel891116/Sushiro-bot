@@ -310,6 +310,9 @@ class myRobot(Node):
 			self.gripper("open")
 
 			self.moveToPose(readyPose)
+			
+			self.block()
+			self.MCU.nigiriRoll()
 
 		else:
 			print("[Error] Cannot find salmon !!! Continue...")
