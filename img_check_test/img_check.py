@@ -4,6 +4,9 @@ import glob
 import os
 import math
 import matplotlib.pyplot as plt
+from matplotlib.collections import PatchCollection
+from matplotlib.patches import Rectangle
+
 
 sashimi_gripper_pos  = np.array([169, 205])
 tekamaki_gripper_pos = np.array([153, 193])
@@ -26,14 +29,13 @@ def Findedge(counter):
     box = np.int0(box)
     sortedbox_X = sorted([point for point in box], key = lambda point : point[0])
     sortedbox_Y = sorted([point for point in box], key = lambda point : point[1])
-    # print(sortedbox[0:2])
-    left_edge_mid = np.mean(sortedbox_X[0:2], axis = 0)
+    left_edge_mid = np.mean(sortedbox_X[0:2], axis = 0).astype(np.uint16)
     top_edge_mid = np.mean(sortedbox_Y[0:2], axis = 0)
-    # print(left_edge_mid)
+
     return left_edge_mid, top_edge_mid
 
 def GetOuterBox(img: np.ndarray):
-    x_min = -1
+    x_min = 0
     x_max = -1
     y_min = 0
     y_max = img.shape[0]
@@ -87,14 +89,14 @@ def GradeRiceRoll(seaweed_mask: np.ndarray, box: list):
                     distribution.append(-1)
                 y_detect += 1
             else:
-                distribution.append([y_detect + h_detect / 2])
+                distribution.append(*[y_detect + h_detect / 2])
                 y_detect += 1
 
         if len(distribution) != 0:
             if distribution[-1] != -1:
                 distribution.append(-1)
 
-        return np.array(distribution)
+        return np.array(distribution, dtype = list)
 
     def ProcessDistribution(distribution: list) -> list:
         current = []
@@ -108,23 +110,26 @@ def GradeRiceRoll(seaweed_mask: np.ndarray, box: list):
                 current.append(y)
         
         return output
-
+    
     distribution = GetDistribution(rice_mask)
+    # print(distribution)
+    # print("="*20)
+    plot_distribution = distribution
     distribution = ProcessDistribution(distribution)
 
-    return rice_mask, np.array(distribution)
+    return rice_mask, np.array(distribution), np.array(plot_distribution)
     
 def DetectRice(bgrimg: np.ndarray):
     thres_area = 45000
     lower_bound = np.array([15,  10,  100])
-    upper_bound = np.array([60, 40, 250])
+    upper_bound = np.array([75, 40, 250])
 
     hsvimg = cv.cvtColor(bgrimg, cv.COLOR_BGR2HSV)
     [h, w] = hsvimg.shape[:-1]
     rice_mask = np.zeros([h, w])
-    check_range = hsvimg[:, 470:800]
+    check_range = hsvimg[:, 470:900]
     mask = cv.inRange(check_range, lower_bound, upper_bound)
-    rice_mask[:, 470:800] = mask
+    rice_mask[:, 470:900] = mask
     # kernel = np.ones((7,7), np.uint8)
     # rice_mask = cv.erode(rice_mask, kernel, iterations = 1)
     # rice_mask = cv.dilate(rice_mask, kernel, iterations = 2)
@@ -146,7 +151,7 @@ def DetectRice(bgrimg: np.ndarray):
     box = cv.boxPoints(rect)
     box = np.int0(box)
     box_area = cv.contourArea(box)
-    cv.drawContours(rice_mask, [box], -1,color = (255,255,255),thickness = 2)
+    cv.drawContours(rice_mask, [box], -1,color = (255,255,255),thickness = 6)
 
     rice = dict()
     rice['area'] = rice_area
@@ -154,7 +159,7 @@ def DetectRice(bgrimg: np.ndarray):
     rice['center'] = center
     rice['edge_mid'] = mid_point
     rice['orientation'] = orientation
-    rice['valid'] = rice_area >= thres_area and (rice_area / box_area) >= 0.7 and abs(abs(orientation) - 90) <= 15
+    rice['valid'] = rice_area >= thres_area and (rice_area / box_area) >= 0.6 and abs(abs(orientation) - 90) <= 20
     
     return rice_mask, rice 
 
@@ -243,14 +248,15 @@ def DetectRiceRoll(bgrimg: np.ndarray):
     hsvimg = cv.cvtColor(bgrimg, cv.COLOR_BGR2HSV)
     hsvimg = cv.GaussianBlur(hsvimg, (21, 21), 0)
 
-    lower_bound = np.array([   0, 18,  28])
-    upper_bound = np.array([ 173, 64, 100])
+    lower_bound = np.array([   0, 15,  15])
+    upper_bound = np.array([ 173, 80, 120])
 
     [h, w] = hsvimg.shape[:-1]
     seaweed_mask = np.zeros([h, w])
     check_range = hsvimg
     seaweed_mask = cv.inRange(check_range, lower_bound, upper_bound)
     contours, _ = cv.findContours(image=seaweed_mask.astype(np.uint8), mode=cv.RETR_LIST, method=cv.CHAIN_APPROX_NONE)
+
     # cv.drawContours(seaweed_mask, contours, -1, color = (255, 255, 255), thickness = cv.FILLED)
     # all_area = 0
     # for cnt in contours:
@@ -262,72 +268,87 @@ def DetectRiceRoll(bgrimg: np.ndarray):
     outcontours, _ = cv.findContours(image=seaweed_mask.astype(np.uint8), mode=cv.RETR_LIST, method=cv.CHAIN_APPROX_NONE)
     
     cv.drawContours(seaweed_mask, outcontours, -1, color = (255, 255, 255), thickness = cv.FILLED)
+
     box = GetOuterBox(seaweed_mask)
-    rice_mask, distribution = GradeRiceRoll(seaweed_mask, box)
+    rice_mask, distribution, plot_distribution = GradeRiceRoll(seaweed_mask, box)
+
     riceroll = dict()
     riceroll['box'] = box
-    riceroll['empty_pos'] = distribution+crop
-
+    riceroll['empty_pos'] = distribution+crop[1]
+    riceroll['plot_empty_pos'] = plot_distribution
     return rice_mask, riceroll
 
 def main():
 
     img_dir = "riceroll"
 
-    filenames = sorted(glob.glob(os.path.join(os.getcwd(), img_dir, "*.png")))
-    print(len(filenames))
+    filenames = sorted(glob.glob(os.path.join(os.getcwd(), img_dir, "*.png")))[0:4]
+
     # filename = "Photos/rice_2.png"
-    fig1 = plt.figure(figsize=(10, 8))
-    fig3 = plt.figure(figsize=(10, 8))
+    fig1 = plt.figure(figsize=(10, 5))
+    fig3 = plt.figure(figsize=(10, 5))
     for i, filename in enumerate(filenames):
 
         bgrimg = cv.imread(filename)
         
         rgbimg = cv.cvtColor(bgrimg, cv.COLOR_BGR2RGB)
-        # rice_map, rice = DetectRice(bgrimg)
-        # cucumber_map, cucumber = DetectCucumber(bgrimg)
-        # salmon_map, salmons = DetectSalmon(bgrimg)
+        rice_map, rice = DetectRice(bgrimg)
+        cucumber_map, cucumber = DetectCucumber(bgrimg)
+        salmon_map, salmons = DetectSalmon(bgrimg)
         riceroll_map, riceroll = DetectRiceRoll(bgrimg)
         
-        ax1 = fig1.add_subplot(1, 2, i+1)
+        ax1 = fig1.add_subplot(1, 4, i+1)
         hsvimg = cv.cvtColor(bgrimg, cv.COLOR_BGR2HSV)
-        ax1.imshow(hsvimg)
+        ax1.imshow(rgbimg[150:900, 500:1000])
+        fig1.tight_layout()
+        fig1.savefig(f"{img_dir}_rgb.png")
 
         # Detect RiceRoll
-        ax3 = fig3.add_subplot(1, 2, i+1)
+        ax3 = fig3.add_subplot(1, 4, i+1)
         ax3.set_title(f"", fontsize = 10)
+        # ax3.scatter([riceroll_map.shape[1]//2]*(len(riceroll['plot_empty_pos']) - 1), riceroll['plot_empty_pos'][:-1], s = 1, color = 'red', alpha = 0.5)
+        rects = [Rectangle((0, y), riceroll_map.shape[1], 1) for y in riceroll['plot_empty_pos']]
+        pc = PatchCollection(rects, facecolor = 'r', alpha = 0.3)
+        ax3.add_collection(pc)
         ax3.imshow(riceroll_map, cmap = 'gray')
+        fig3.tight_layout()
+        fig3.savefig("riceroll_mask.png")
 
         # Detect Salmon
-        # ax3 = fig3.add_subplot(2, 1, i+1)
-        # ax3.set_title(f"found {len(salmons)}", fontsize=10)
+        # ax3 = fig3.add_subplot(1, 2, i+1)
         # ax3.imshow(salmon_map, cmap = 'gray')
         # for salmon in salmons:
         #     print(salmon['edge_mid'])
         #     print(f"gripper should move {salmon['edge_mid']/sashimi_calib_scale - sashimi_gripper_pos}")
         #     print(f"gripper should move {salmon['center']/sashimi_calib_scale - sashimi_gripper_pos}")
-        #     ax3.scatter(int(salmon['center'][0]), int(salmon['center'][1]), color = 'r', s = 5)
-        #     ax3.scatter(int(salmon['edge_mid'][0]), int(salmon['edge_mid'][1]), color = 'g', s = 5)
+        #     ax3.scatter(int(salmon['center'][0]), int(salmon['center'][1]), color = 'r', s = 10)
+        #     ax3.scatter(int(salmon['edge_mid'][0]), int(salmon['edge_mid'][1]), color = 'g', s = 10)
+        #     ax3.set_title(f"center at {tuple(salmon['center'])}\ngripper point at {tuple(salmon['edge_mid'])}", fontsize=10)
 
-        # Detect Cucumber
-        # ax3 = fig3.add_subplot(5, 4, i+1)
-        # ax3.scatter(int(cucumber['center'][0]), int(cucumber['center'][1]), color = 'r', s = 0.5)
+        # fig3.savefig("real_salmon_mask.png")
+
+        # Detect Cucumber 
+        # ax3 = fig3.add_subplot(2, 2, i+1)
+        # ax3.scatter(int(cucumber['center'][0]), int(cucumber['center'][1]), color = 'r', s = 5)
+        # ax3.set_title(f"center at ({int(cucumber['center'][0])}, {int(cucumber['center'][1])})")
         # ax3.imshow(cucumber_map, cmap = 'gray')
+        # fig3.savefig("cucumber_mask.png")
 
         # Detect Rice
-        # ax3 = fig3.add_subplot(3, 2 , i+1)
+        # ax3 = fig3.add_subplot(2, 2 , i+1)
         # ax3.imshow(rice_map, cmap = 'gray')
-        # ax3.set_title(f"{rice['area_rate']*100:.1f}%, {rice['orientation']:.1f}°, {rice['valid']}", fontsize=10)
-        # ax3.scatter(int(rice['center'][0]), int(rice['center'][1]), color = 'r', s = 0.5)
-        # ax3.scatter(int(rice['edge_mid'][0]), int(rice['edge_mid'][1]), color = 'g', s = 1)
+        # ax3.set_title(f"{rice['area_rate']*100:.1f}%, {rice['orientation']:.1f}°, {rice['valid']}", fontsize=25)
+        # ax3.scatter(int(rice['center'][0]), int(rice['center'][1]), color = 'r', s = 5)
+        # ax3.scatter(int(rice['edge_mid'][0]), int(rice['edge_mid'][1]), color = 'g', s = 5)
         # slope = math.tan(rice['orientation'] * math.pi / 180)
         # (cx, cy) = rice['center']
         # L_point = (0, -cx * slope + cy)
         # R_point = (hsvimg.shape[1], (hsvimg.shape[1] - cx) * slope + cy)
         # ax3.plot((L_point[0], R_point[0]), (L_point[1], R_point[1]), color = 'b', linewidth = 1)
-
-        plt.xlim([0, rgbimg.shape[1]])
-        plt.ylim([rgbimg.shape[0], 0])
+        # ax3.set_xlim([0, rgbimg.shape[1]])
+        # ax3.set_ylim([rgbimg.shape[0], 0])
+        # fig3.tight_layout()
+        # fig3.savefig("rice_mask.png")
 
     plt.show()
 
