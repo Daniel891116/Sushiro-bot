@@ -302,14 +302,17 @@ class myRobot(Node):
 			pose.y += 30
 			pose.z -= 20
 			self.moveToPose(pose)
-			pose.x -= 35*2.9
-			pose.y += 35*2.9
+			pose.x -= 35*2.8
+			pose.y += 35*2.8
 			pose.z -= 50
 			pose.ry = 30
 			self.moveToPose(pose)
 			self.gripper("open")
 
 			self.moveToPose(readyPose)
+			
+			self.block()
+			self.MCU.nigiriRoll()
 
 		else:
 			print("[Error] Cannot find salmon !!! Continue...")
