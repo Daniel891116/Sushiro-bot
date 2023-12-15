@@ -31,6 +31,8 @@
    ```sh
    git push origin main
    ```
+## Project Report
+- [link](https://drive.google.com/file/d/12O01ZG_197nuIEQE2wXryl7hFiS-eNMy/view?usp=sharing)
 
 ## HackMD
 - https://hackmd.io/@Kevin75311/ryDHg_5mj
